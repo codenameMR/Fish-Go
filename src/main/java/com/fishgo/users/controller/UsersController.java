@@ -37,7 +37,7 @@ public class UsersController {
                     .map(error -> error.getDefaultMessage())
                     .collect(Collectors.toList());
 
-            ApiResponse<List<String>> errorResponse = new ApiResponse<>(String.join(", ", errors), HttpStatus.BAD_REQUEST.value());
+            ApiResponse<List<String>> errorResponse = new ApiResponse<>(errors, HttpStatus.BAD_REQUEST.value());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         }
 
@@ -47,14 +47,20 @@ public class UsersController {
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             logger.error("회원가입 중 예외 발생 : {}", e.getMessage(), e);
-            ApiResponse<String> errorResponse = new ApiResponse<>(e.getMessage(), HttpStatus.BAD_REQUEST.value());
+            ApiResponse<List<String>> errorResponse = new ApiResponse<>(e.getMessage(), HttpStatus.BAD_REQUEST.value());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         }
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody UsersDto usersDto){
-        Users user = usersService.loginUser(usersDto);
+        Users user = null;
+        try{
+            user = usersService.loginUser(usersDto);
+        } catch (IllegalArgumentException e) {
+            ApiResponse<List<String>> errorResponse = new ApiResponse<>(e.getMessage(), HttpStatus.BAD_REQUEST.value());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        }
         return ResponseEntity.ok(user);
     }
 }
