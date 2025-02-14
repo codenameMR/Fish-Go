@@ -1,7 +1,6 @@
 package com.fishgo.posts.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fishgo.posts.domain.Posts;
 import com.fishgo.posts.dto.PostsDto;
 import com.fishgo.posts.respository.PostsRepository;
@@ -9,8 +8,6 @@ import com.fishgo.users.domain.Users;
 import com.fishgo.users.repository.UsersRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +34,7 @@ public class PostsService {
                 .location(postsDto.getLocation())
                 .fishType(postsDto.getFishType())
                 .fishSize(postsDto.getFishSize())
+                .metaData(postsDto.getMetaData())
                 .build();
 
         return postsRepository.save(post);

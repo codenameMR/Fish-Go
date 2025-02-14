@@ -3,6 +3,10 @@ package com.fishgo.posts.domain;
 import com.fishgo.users.domain.Users;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.util.Map;
 
 @Entity
 @Getter
@@ -33,8 +37,9 @@ public class Posts {
     @Column(columnDefinition = "TEXT")
     private String img;
 
-//    @Column(name = "meta_data", columnDefinition = "JSONB")
-//    private String metaData;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "meta_data", columnDefinition = "JSONB")
+    private Map<String, Object> metaData;
 
     @Column(name = "report_count", nullable = false, columnDefinition = "INT DEFAULT 0")
     private Integer reportCount;
