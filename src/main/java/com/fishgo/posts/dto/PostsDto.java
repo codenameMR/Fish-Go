@@ -28,7 +28,7 @@ public class PostsDto {
 
     private String img;
 
-//    private Map<String, Object> metaData;
+    private Map<String, Object> metaData;
 
     private int reportCount;
 
