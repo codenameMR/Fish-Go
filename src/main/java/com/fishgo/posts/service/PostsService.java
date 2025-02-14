@@ -9,6 +9,9 @@ import com.fishgo.users.repository.UsersRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class PostsService {
@@ -37,7 +40,30 @@ public class PostsService {
                 .metaData(postsDto.getMetaData())
                 .build();
 
+
         return postsRepository.save(post);
+    }
+
+    public List<PostsDto> searchPosts(String title, String hashTag, String fishType) {
+        List<Posts> posts = postsRepository.searchPosts(title, hashTag, fishType);
+
+        return posts.stream()
+                .map(post -> new PostsDto(
+                        post.getUsers().getId(),
+                        post.getHashTag(),
+                        post.getTitle(),
+                        post.getContents(),
+                        post.getImg(),
+                        post.getMetaData(),
+                        post.getReportCount(),
+                        post.getIsActive(),
+                        post.getLikeCount(),
+                        post.getViewCount(),
+                        post.getLocation(),
+                        post.getFishType(),
+                        post.getFishSize()
+                ))
+                .collect(Collectors.toList());
     }
 
 }
