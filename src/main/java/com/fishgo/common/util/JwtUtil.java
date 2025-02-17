@@ -1,0 +1,72 @@
+package com.fishgo.common.util;
+
+import com.fishgo.users.domain.Users;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+import javax.crypto.SecretKey;
+import java.util.Date;
+import java.util.function.Function;
+
+@Slf4j
+@Component
+public class JwtUtil {
+
+    private final SecretKey SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS512); // 안전한 키 생성
+    public final long ACCESS_TOKEN_EXPIRATION = 1000 * 60 * 10; // 10분
+    public final long REFRESH_TOKEN_EXPIRATION = 1000 * 60 * 60 * 24 * 7; // 7일
+
+    // Access Token 생성
+    public String generateAccessToken(Users user) {
+        return buildToken(user.getUserId(), ACCESS_TOKEN_EXPIRATION);
+    }
+
+    // Refresh Token 생성
+    public String generateRefreshToken(Users user) {
+        return buildToken(user.getUserId(), REFRESH_TOKEN_EXPIRATION);
+    }
+
+    private String buildToken(String subject, long expiration) {
+        return Jwts.builder()
+                .subject(subject)
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(SECRET_KEY)
+                .compact();
+    }
+
+    // 토큰에서 사용자 이름 추출
+    public String extractUsername(String token) {
+        return extractClaim(token, Claims::getSubject);
+    }
+
+    // 토큰 유효성 검사
+    public boolean isTokenValid(String token, Users users) {
+        final String username = extractUsername(token);
+        return (username.equals(users.getUserId()) && !isTokenExpired(token));
+    }
+
+    // 토큰 만료 여부 확인
+    public boolean isTokenExpired(String token) {
+        return extractClaim(token, Claims::getExpiration).before(new Date());
+    }
+
+    // 클레임 추출
+    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+        final Claims claims = extractAllClaims(token);
+        return claimsResolver.apply(claims);
+    }
+
+    // 모든 클레임 추출
+    private Claims extractAllClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(SECRET_KEY)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+}
