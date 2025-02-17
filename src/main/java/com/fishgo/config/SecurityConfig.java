@@ -26,13 +26,14 @@ public class SecurityConfig {
         http.csrf(AbstractHttpConfigurer::disable)
             .sessionManagement((sessionManagement) ->
                     sessionManagement
-                            .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)// 세션 관리 정책
-                            .maximumSessions(1) // 동일 사용자로 여러 세션을 생성하지 않도록 설정
+                            .sessionCreationPolicy(SessionCreationPolicy.STATELESS)// 세션 관리 정책
             )
             .authorizeHttpRequests((authorizeRequests) ->
                     authorizeRequests.anyRequest().permitAll()
             );
+
     return http.build();
     }
+
 
 }

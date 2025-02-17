@@ -34,4 +34,6 @@ public class Users {
     @Column(name = "profile_img")
     private String profileImg;
 
+
+
 }

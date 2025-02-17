@@ -33,5 +33,12 @@ public class ApiResponse<T> {
         this.data = data;
     }
 
+    // 생성자 - data 포함 및 메세지가 한 개일 경우
+    public ApiResponse(String message, int status, T data) {
+        this.message = List.of(message);;
+        this.status = status * 100;
+        this.data = data;
+    }
+
 }
 
