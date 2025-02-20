@@ -38,6 +38,10 @@ dependencies {
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	implementation 'com.vladmihalcea:hibernate-types-60:2.21.1'
+
+	// Multipart file upload dependency
+	implementation group: 'commons-fileupload', name: 'commons-fileupload', version: '1.4'
+	implementation group: 'commons-io', name: 'commons-io', version: '2.18.0'
 }
 
 tasks.named('test') {

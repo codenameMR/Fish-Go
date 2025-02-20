@@ -8,6 +8,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.File;
+
 @Service
 @RequiredArgsConstructor
 public class UsersService {
@@ -29,7 +31,11 @@ public class UsersService {
                 .role("USER")
                 .build();
 
-        return usersRepository.save(user);
+        Users saveUser = usersRepository.save(user);
+
+        createUserDir(saveUser.getUserId());
+
+        return saveUser;
     }
 
     public Users loginUser(UsersDto usersDto) {
@@ -41,5 +47,12 @@ public class UsersService {
         }
 
         return user;
+    }
+
+    private void createUserDir(String userName) {
+        String dir = System.getProperty("user.dir");
+        String path = dir + "/uploads/users/" + userName;
+        new File(path + "/profile").mkdirs();
+        new File(path + "/posts").mkdirs();
     }
 }

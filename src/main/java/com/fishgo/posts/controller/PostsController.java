@@ -1,13 +1,17 @@
 package com.fishgo.posts.controller;
 
+import com.fishgo.common.response.ApiResponse;
 import com.fishgo.posts.domain.Posts;
 import com.fishgo.posts.dto.PostsDto;
 import com.fishgo.posts.service.PostsService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -20,15 +24,23 @@ public class PostsController {
     private final PostsService postsService;
 
     @PostMapping("/create")
-    public ResponseEntity<?> create(@RequestBody PostsDto postsDto) {
+    public ResponseEntity<?> create(
+            @RequestPart(value = "param") PostsDto postsDto,
+            @RequestParam(value = "file", required = false) MultipartFile file) {
 
         try {
-            Posts savedPost = postsService.createPost(postsDto);
-            return ResponseEntity.ok(savedPost);
+            logger.info("게시글 생성 요청 받음: " + postsDto);
+            Posts savedPost = postsService.createPost(postsDto, file);
+            ApiResponse<Posts> response = new ApiResponse<>(
+                    "게시글이 저장 되었습니다.",
+                    HttpStatus.OK.value(),
+                    savedPost
+            );
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("저장실패");
+            logger.error("게시글 생성 중 예외 발생 : {}" + e.getMessage());
+            return ResponseEntity.badRequest().body(new ApiResponse("게시글 저장 실패", HttpStatus.BAD_REQUEST.value()));
         }
-
     }
 
     @GetMapping("/search")
@@ -42,12 +54,20 @@ public class PostsController {
 
 
     @PutMapping("/{postId}")
-    public ResponseEntity<?> updatePost(@PathVariable Long postId, @RequestBody PostsDto postsDto) {
+    public ResponseEntity<?> updatePost(@PathVariable Long postId,
+                                        @RequestPart(value = "param") PostsDto postsDto,
+                                        @RequestParam(value = "file", required = false) MultipartFile file) {
         try {
-            PostsDto updatedPost = postsService.updatePost(postId, postsDto);
-            return ResponseEntity.ok(updatedPost);
+            PostsDto updatedPost = postsService.updatePost(postId, postsDto, file);
+            ApiResponse<PostsDto> response = new ApiResponse<>(
+                    "게시글이 수정 되었습니다.",
+                    HttpStatus.OK.value(),
+                    updatedPost
+            );
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("수정실패");
+            logger.error("게시글 수정 중 예외 발생 : {}" + e.getMessage());
+            return ResponseEntity.badRequest().body(new ApiResponse("게시글 수정 실패", HttpStatus.BAD_REQUEST.value()));
         }
     }
 
@@ -55,9 +75,11 @@ public class PostsController {
     public ResponseEntity<?> deletePost(@PathVariable Long postId) {
         try {
             postsService.deletePost(postId);
-            return ResponseEntity.ok("삭제되었습니다.");
+            ApiResponse<Posts> response = new ApiResponse<>("게시글이 삭제 되었습니다.", HttpStatus.OK.value());
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("삭제실패");
+            logger.error("게시글 삭제 중 예외 발생 : {}" + e.getMessage());
+            return ResponseEntity.badRequest().body(new ApiResponse("게시글 삭제 실패", HttpStatus.BAD_REQUEST.value()));
         }
     }
 
