@@ -3,7 +3,6 @@ package com.fishgo.common.util;
 import com.fishgo.users.domain.Users;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -16,7 +15,9 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    private final SecretKey SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS512); // 안전한 키 생성
+    //512 bit
+    private final String originalKey = "qYtjTJEL77ty3e2yCVTDUZ5Bm13czUHO3JkovgseW2Vnzm+l3iBqv2avHUJZt6/8BDPEETy7rk6kplS3zlsTuA==";
+    private final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(originalKey.getBytes()); // 안전한 키 생성
     public final long ACCESS_TOKEN_EXPIRATION = 1000 * 60 * 10; // 10분
     public final long REFRESH_TOKEN_EXPIRATION = 1000 * 60 * 60 * 24 * 7; // 7일
 
