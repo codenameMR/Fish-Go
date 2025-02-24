@@ -25,11 +25,15 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
             .sessionManagement((sessionManagement) ->
-                    sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                    sessionManagement
+                            .sessionCreationPolicy(SessionCreationPolicy.STATELESS)// 세션 관리 정책
             )
             .authorizeHttpRequests((authorizeRequests) ->
                     authorizeRequests.anyRequest().permitAll()
             );
+
     return http.build();
     }
+
+
 }
