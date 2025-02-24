@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.Map;
 
+import java.io.File;
+
 @Service
 @RequiredArgsConstructor
 public class UsersService {
@@ -36,7 +38,11 @@ public class UsersService {
                 .role("USER")
                 .build();
 
-        return usersRepository.save(user);
+        Users saveUser = usersRepository.save(user);
+
+        createUserDir(saveUser.getUserId());
+
+        return saveUser;
     }
 
     public Map<String, Object> loginUser(UsersDto usersDto, HttpServletResponse response) {
@@ -65,6 +71,13 @@ public class UsersService {
 
 
         return responseData;
+    }
+
+    private void createUserDir(String userName) {
+        String dir = System.getProperty("user.dir");
+        String path = dir + "/uploads/users/" + userName;
+        new File(path + "/profile").mkdirs();
+        new File(path + "/posts").mkdirs();
     }
 
     public Users findByUserId(String userId){
