@@ -83,6 +83,7 @@ public class UsersController {
         try {
             String userId = jwtUtil.extractUsername(refreshToken);
             Users user = usersService.findByUserId(userId);
+
             if (jwtUtil.isTokenValid(refreshToken, user)) {
                 log.debug("유저 아이디 >> " + userId + "\n refresh Token >> " + refreshToken);
                 String newAccessToken = jwtUtil.generateAccessToken(user);
