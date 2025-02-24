@@ -11,6 +11,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 public class UsersService {
@@ -36,7 +39,7 @@ public class UsersService {
         return usersRepository.save(user);
     }
 
-    public Users loginUser(UsersDto usersDto, HttpServletResponse response) {
+    public Map<String, Object> loginUser(UsersDto usersDto, HttpServletResponse response) {
         Users user = findByUserId(usersDto.getUserId());
 
         if(!passwordEncoder.matches(usersDto.getPassword(), user.getPassword())){
@@ -55,8 +58,13 @@ public class UsersService {
         refreshTokenCookie.setMaxAge((int) (jwtUtil.REFRESH_TOKEN_EXPIRATION / 1000));
         response.addCookie(refreshTokenCookie);
 
+        // 사용자 및 Access Token Response 데이터 구성
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("user", user);
+        responseData.put("accessToken", accessToken);
 
-        return user;
+
+        return responseData;
     }
 
     public Users findByUserId(String userId){

@@ -1,15 +1,23 @@
 package com.fishgo.common.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
 
+@Schema(description = "API 표준 응답 객체")
 @Getter
 @Setter
 public class ApiResponse<T> {
+
+    @Schema(description = "응답 메시지 리스트")
     private List<String> message;
+
+    @Schema(description = "응답 상태 코드")
     private int status;
+
+    @Schema(description = "응답 데이터")
     private T data;
 
     // 생성자 - List<String> 타입 처리
