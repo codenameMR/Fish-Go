@@ -18,11 +18,12 @@ public class TideDataController {
     // Singleton 인스턴스 의존성 주입
     private final TideDataFetcher tideDataFetcher = TideDataFetcher.getInstance();
 
-    @Operation(summary = "관측소 별 혹은 전체 관측소의 조석예보 데이터 조회",
-            description = "관측소 코드에 따른 조석예보 데이터를 가져옵니다.")
+    @Operation(summary = "조석예보 데이터 조회",
+            description = "관측소 별 혹은 전체 관측소 조석예보 데이터를 가져옵니다.")
     @GetMapping("/{obsCode}")
     public ResponseEntity<ApiResponse<?>> getTideData(
-            @Parameter(description = "특정 관측소 코드 혹은 ALL", example = "SO_0732", required = true)
+            @Parameter(description = "특정 관측소 코드 혹은 문자열 \"ALL\"로 전체 관측소를 가지고 옵니다.",
+                    example = "SO_0732", required = true)
             @PathVariable String obsCode
     ) {
         Map<String, Object> data;

@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -38,7 +39,7 @@ public class UsersController {
         if (bindingResult.hasErrors()) {
             //DTO단에서 검증 오류가 있을 경우 오류 메시지를 추출하여 반환
             List<String> errors = bindingResult.getAllErrors().stream()
-                    .map(error -> error.getDefaultMessage())
+                    .map(DefaultMessageSourceResolvable::getDefaultMessage)
                     .collect(Collectors.toList());
 
             ApiResponse<List<String>> errorResponse = new ApiResponse<>(errors, HttpStatus.BAD_REQUEST.value());
@@ -73,11 +74,32 @@ public class UsersController {
         return ResponseEntity.ok(apiResponse);
     }
 
-    @Operation(summary = "리프레시 토큰 갱신", description = "리프레시 토큰을 통해 새로운 Access Token 발급.")
+    @Operation(summary = "로그아웃", description = "FE에서 AccessToken, BE에서는 RefreshToken을 삭제합니다.")
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        usersService.logoutUser(response);
+
+        return ResponseEntity.ok(new ApiResponse<>("로그아웃 성공 하였습니다.", HttpStatus.OK.value()));
+    }
+
+    @Operation(summary = "회원탈퇴")
+    @PostMapping("/delete")
+    public ResponseEntity<?> delete(@CookieValue(name = "refreshToken") String token, HttpServletResponse response) {
+        try {
+            usersService.deleteUser(token, response);
+        } catch (Exception e) {
+            log.error("회원 탈퇴 실패 : {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(new ApiResponse<>("회원 탈퇴가 정상적으로 이루어지지 않았습니다.", HttpStatus.BAD_REQUEST.value()));
+        }
+
+        return ResponseEntity.ok(new ApiResponse<>("회원탈퇴가 성공적으로 완료되었습니다.", HttpStatus.OK.value()));
+    }
+
+    @Operation(summary = "리프레시 토큰 갱신", description = "RefreshToken을 통해 새로운 AccessToken 발급.")
     @PostMapping("/refreshToken")
     public ResponseEntity<?> refreshToken(@CookieValue(name = "refreshToken") String refreshToken) {
         if (refreshToken == null) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>("refreshToken이 없습니다.", HttpStatus.BAD_REQUEST.value()));
+            return ResponseEntity.badRequest().body(new ApiResponse<>("RefreshToken이 없습니다.", HttpStatus.BAD_REQUEST.value()));
         }
 
         try {
@@ -85,14 +107,13 @@ public class UsersController {
             Users user = usersService.findByUserId(userId);
 
             if (jwtUtil.isTokenValid(refreshToken, user)) {
-                log.debug("유저 아이디 >> " + userId + "\n refresh Token >> " + refreshToken);
                 String newAccessToken = jwtUtil.generateAccessToken(user);
                 return ResponseEntity.ok(new AuthResponse(newAccessToken));
             } else {
                 return ResponseEntity.badRequest().body(new ApiResponse<>("유효하지 않은 refreshToken", HttpStatus.BAD_REQUEST.value()));
             }
         } catch (Exception e) {
-            log.error("토큰 재발급 중 예외 발생 : {}" + e.getMessage());
+            log.error("토큰 재발급 중 예외 발생 : {}", e.getMessage());
             return ResponseEntity.badRequest().body(new ApiResponse<>("토큰 갱신 실패", HttpStatus.BAD_REQUEST.value()));
         }
     }

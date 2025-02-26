@@ -73,6 +73,34 @@ public class UsersService {
         return responseData;
     }
 
+    public void logoutUser(HttpServletResponse response) {
+        // 쿠키 만료시켜서 삭제
+        Cookie cookie = new Cookie("refreshToken", null);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0); // 즉시 만료
+        response.addCookie(cookie);
+    }
+
+    public void deleteUser(String refreshToken, HttpServletResponse response) throws Exception {
+
+        String userId = jwtUtil.extractUsername(refreshToken);
+
+        if(userId == null){
+            throw new Exception("유저를 찾을 수 없습니다.");
+        }
+
+        // 쿠키 만료시켜서 삭제
+        Cookie cookie = new Cookie("refreshToken", null);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0); // 즉시 만료
+        response.addCookie(cookie);
+        usersRepository.deleteByUserId(userId);
+    }
+
     private void createUserDir(String userName) {
         String dir = System.getProperty("user.dir");
         String path = dir + "/uploads/users/" + userName;
@@ -84,5 +112,6 @@ public class UsersService {
         return usersRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다."));
     }
+
 
 }
