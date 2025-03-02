@@ -1,28 +1,31 @@
 package com.fishgo.users.service;
 
 import com.fishgo.common.util.JwtUtil;
+import com.fishgo.posts.respository.PostsRepository;
 import com.fishgo.users.domain.Users;
 import com.fishgo.users.dto.UsersDto;
 import com.fishgo.users.repository.UsersRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
-import java.io.File;
-
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UsersService {
 
     private final JwtUtil jwtUtil;
     private final UsersRepository usersRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PostsRepository postsRepository;
 
     @Transactional
     public Users registerUser(UsersDto usersDto){
@@ -83,12 +86,13 @@ public class UsersService {
         response.addCookie(cookie);
     }
 
+    @Transactional
     public void deleteUser(String refreshToken, HttpServletResponse response) throws Exception {
 
         String userId = jwtUtil.extractUsername(refreshToken);
-
+        log.debug("userId : {}", userId);
         if(userId == null){
-            throw new Exception("유저를 찾을 수 없습니다.");
+            throw new Exception("사용자 정보를 찾을 수 없습니다.");
         }
 
         // 쿠키 만료시켜서 삭제
@@ -110,8 +114,26 @@ public class UsersService {
 
     public Users findByUserId(String userId){
         return usersRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("유저 정보를 찾을 수 없습니다."));
     }
+
+    // 사용자의 게시글, 댓글 및 받은 좋아요 총 개수
+  /*  public UserOverviewDto getOverview(String userId) {
+        Users user = findByUserId(userId);
+
+        // PostsRepository의 단일 쿼리 메서드 호출
+        PostStatsDto postStats = postsRepository.findPostStatsByUserId(userId);
+
+        int commentCount = commentRepository.countCommentsByUserId(userId);
+
+        return new UserOverviewDto(
+                user.getName(),
+                user.getProfileImg(),
+                (int) postStats.getPostCount(),
+                commentCount,
+                (int) postStats.getTotalLikes()
+        );
+    }*/
 
 
 }
