@@ -44,13 +44,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                 user = usersRepository.findByUserId(username)
                         .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다."));
 
-                // Access Token이 유효한 경우
-                if (jwtUtil.isTokenValid(accessToken, user)) {
-                    /*UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            user, null, userDetails.getAuthorities());
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);*/
-                }
             }
         }
 

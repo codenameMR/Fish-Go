@@ -1,20 +1,24 @@
 package com.fishgo.common.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 //조석예보 API Fetcher
+@Slf4j
 public class TideDataFetcher {
     private static volatile Map<String, String> cachedDataMap = new ConcurrentHashMap<>();
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -46,8 +50,8 @@ public class TideDataFetcher {
 
     private static final TideDataFetcher INSTANCE = new TideDataFetcher();
     private TideDataFetcher() {
-        // 데이터를 동기적으로 먼저 로드
-        fetchDataSynchronously();
+        //서버 실행시 데이터 수집
+        fetchDataForAllStations();
 
         // 주기적인 데이터 갱신을 위한 스케줄 시작
         scheduleDataFetching();
@@ -61,50 +65,65 @@ public class TideDataFetcher {
     private void scheduleDataFetching() {
         Runnable fetchTask = this::fetchDataForAllStations;
 
-        long initialDelay = calculateInitialDelay();
+        long initialDelay = calculateInitialDelayFor4AM();
         scheduler.scheduleAtFixedRate(fetchTask, initialDelay, 1, TimeUnit.DAYS);
     }
 
     private void fetchDataForAllStations() {
-        String todayDate = LocalDate.now().toString().replace("-", "");
-        for (String obsCode : OBS_CODES) {
-            try {
-                String uri = URL + "?Date=" + todayDate + "&ServiceKey=" + SERVICE_KEY + "&ObsCode=" + obsCode + "&ResultType=json";
-                System.out.println(uri);
-                String response = fetchApiData(uri);
-                cachedDataMap.put(obsCode, response);  // 데이터 갱신
+        ZoneId kstZone = ZoneId.of("Asia/Seoul");
+        String todayDate = LocalDate.now(kstZone).toString().replace("-", "");
 
-            } catch (Exception e) {
-                System.err.println("Failed to fetch data for obsCode: " + obsCode);
+        log.info("[TIDE ASYNC FETCH START]");
+        CompletableFuture<Void> allRequests = CompletableFuture.allOf(
+                Arrays.stream(OBS_CODES)
+                        .map(obsCode -> {
+                            String uri = URL + "?Date=" + todayDate + "&ServiceKey=" + SERVICE_KEY + "&ObsCode=" + obsCode + "&ResultType=json";
+                            return fetchApiData(uri) // 비동기 API 호출
+                                    .thenAccept(response -> {
+                                        cachedDataMap.put(obsCode, response);  // 응답을 캐시에 저장
+                                        log.info("[TIDE ASYNC FETCH SUCCESS] obsCode: {}", obsCode);
+                                    })
+                                    .exceptionally(e -> {
+                                        log.error("[TIDE ASYNC FETCH FAILED] obsCode: {}", e.getMessage(), e);
+                                        return null;
+                                    });
+                        })
+                        .toArray(CompletableFuture[]::new)
+        );
 
-            }
-        }
+        // 모든 요청이 완료될 때까지 기다림
+        allRequests.thenRun(() -> log.info("[TIDE ASYNC FETCH COMPLETED]"));
     }
-
-    private String fetchApiData(String uri) throws Exception {
+    private CompletableFuture<String> fetchApiData(String uri) {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(uri))
                 .GET()
                 .build();
 
-        // API 응답 읽기
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 200) {
-            throw new Exception("Invalid response from API: " + response.statusCode());
-        }
-        return response.body();
+        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApply(response -> {
+                    if (response.statusCode() != 200) {
+                        throw new RuntimeException("Invalid response from API: " + response.statusCode());
+                    }
+                    return response.body();
+                });
     }
 
+    private long calculateInitialDelayFor4AM() {
+        ZoneId kstZone = ZoneId.of("Asia/Seoul");
+        ZonedDateTime nowInKst = ZonedDateTime.now(kstZone);
+        ZonedDateTime next4AM = nowInKst.toLocalDate().atTime(4, 0).atZone(kstZone);
 
-    private long calculateInitialDelay() {
-        long currentMillis = System.currentTimeMillis();
-        long nextMidnightMillis = LocalDate.now().plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
-        return nextMidnightMillis - currentMillis;
+        // 현재 시간이 4시 이후라면 다음 날 4시로 설정
+        if (nowInKst.isAfter(next4AM)) {
+            next4AM = next4AM.plusDays(1);
+        }
+
+        return Duration.between(nowInKst, next4AM).toMillis();
     }
 
     // 특정 데이터를 JSON 객체(Map)로 변환해서 반환
-    public Map<String, Object> getCachedDataAsMap(String obsCode) {
+    public HashMap<String, Object> getCachedDataAsMap(String obsCode) {
         String jsonData = cachedDataMap.get(obsCode);
 
         if (jsonData == null || jsonData.isEmpty()) {
@@ -113,9 +132,9 @@ public class TideDataFetcher {
 
         try {
             // JSON 문자열을 Map으로 변환
-            return objectMapper.readValue(jsonData, HashMap.class);
+            return objectMapper.readValue(jsonData, new TypeReference<>() {});
         } catch (Exception e) {
-            e.printStackTrace(); // 에러 로그
+            log.error("조석예보 데이터 파싱 실패 : {}", e.getMessage(), e);
             return null; // 파싱 실패 시 null 반환
         }
     }
@@ -129,30 +148,11 @@ public class TideDataFetcher {
                 // 각 관측소 데이터를 JSON으로 파싱
                 allData.put(entry.getKey(), objectMapper.readValue(entry.getValue(), HashMap.class));
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("조석예보 데이터 파싱 실패 : {}", e.getMessage(), e);
             }
         }
 
         return allData;
-    }
-
-
-    public void fetchDataSynchronously() {
-        System.out.println("[SYNCHRONOUS FETCH STARTED]");
-        String todayDate = LocalDate.now().toString().replace("-", "");
-        for (String obsCode : OBS_CODES) {
-            try {
-                System.out.println("[FETCHING - SYNC] obsCode: " + obsCode);
-                String uri = URL + "?Date=" + todayDate + "&ServiceKey=" + SERVICE_KEY + "&ObsCode=" + obsCode + "&ResultType=json";
-
-                String response = fetchApiData(uri); // API 데이터를 동기식으로 요청
-                cachedDataMap.put(obsCode, response);   // 데이터를 캐시에 저장
-                System.out.println("[FETCH SUCCESS - SYNC] obsCode: " + obsCode);
-            } catch (Exception e) {
-                System.err.println("[SYNC FETCH FAILED] obsCode: " + obsCode + ", Error: " + e.getMessage());
-            }
-        }
-        System.out.println("[SYNCHRONOUS FETCH COMPLETED]");
     }
 
 }

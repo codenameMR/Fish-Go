@@ -23,17 +23,16 @@ public class JwtUtil {
 
     // Access Token 생성
     public String generateAccessToken(Users user) {
-        return buildToken(user.getUserId(), ACCESS_TOKEN_EXPIRATION);
+        return buildToken(user, ACCESS_TOKEN_EXPIRATION);
     }
 
     // Refresh Token 생성
-    public String generateRefreshToken(Users user) {
-        return buildToken(user.getUserId(), REFRESH_TOKEN_EXPIRATION);
-    }
+    public String generateRefreshToken(Users user) { return buildToken(user, REFRESH_TOKEN_EXPIRATION); }
 
-    private String buildToken(String subject, long expiration) {
+    private String buildToken(Users users, long expiration) {
         return Jwts.builder()
-                .subject(subject)
+                .subject(users.getUserId())
+                .claim("role", users.getRole())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(SECRET_KEY)
