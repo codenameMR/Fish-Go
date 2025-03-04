@@ -1,5 +1,6 @@
 package com.fishgo.users.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,6 +23,7 @@ public class Users {
     @Column(nullable = false)
     private String name;
 
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
 
@@ -33,5 +35,7 @@ public class Users {
 
     @Column(name = "profile_img")
     private String profileImg;
+
+
 
 }
