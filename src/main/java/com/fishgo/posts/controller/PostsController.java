@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,8 +37,8 @@ public class PostsController {
             );
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("게시글 생성 중 예외 발생 : {}" + e.getMessage());
-            return ResponseEntity.badRequest().body(new ApiResponse("게시글 저장 실패", HttpStatus.BAD_REQUEST.value()));
+            logger.error("게시글 생성 중 예외 발생 : {}", e.getMessage());
+            return ResponseEntity.badRequest().body(new ApiResponse<>("게시글 저장 실패", HttpStatus.BAD_REQUEST.value()));
         }
     }
 
@@ -66,8 +65,8 @@ public class PostsController {
             );
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("게시글 수정 중 예외 발생 : {}" + e.getMessage());
-            return ResponseEntity.badRequest().body(new ApiResponse("게시글 수정 실패", HttpStatus.BAD_REQUEST.value()));
+            logger.error("게시글 수정 중 예외 발생 : {}", e.getMessage());
+            return ResponseEntity.badRequest().body(new ApiResponse<>("게시글 수정 실패", HttpStatus.BAD_REQUEST.value()));
         }
     }
 
@@ -78,8 +77,8 @@ public class PostsController {
             ApiResponse<Posts> response = new ApiResponse<>("게시글이 삭제 되었습니다.", HttpStatus.OK.value());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("게시글 삭제 중 예외 발생 : {}" + e.getMessage());
-            return ResponseEntity.badRequest().body(new ApiResponse("게시글 삭제 실패", HttpStatus.BAD_REQUEST.value()));
+            logger.error("게시글 삭제 중 예외 발생 : {}", e.getMessage());
+            return ResponseEntity.badRequest().body(new ApiResponse<>("게시글 삭제 실패", HttpStatus.BAD_REQUEST.value()));
         }
     }
 
