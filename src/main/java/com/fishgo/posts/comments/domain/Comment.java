@@ -1,6 +1,7 @@
 package com.fishgo.posts.comments.domain;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fishgo.posts.domain.Posts;
 import com.fishgo.users.domain.Users;
 import jakarta.persistence.*;
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name = "comment")
 @Getter
@@ -38,7 +40,6 @@ public class Comment {
     private LocalDateTime createdAt;
 
     // 댓글 내용 (TEXT 타입)
-    @Lob
     @Column(name = "contents", nullable = false)
     private String contents;
 
@@ -53,7 +54,7 @@ public class Comment {
 
 
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Comment> replies = new ArrayList<>(); // 대댓글 리스트
+    private final List<Comment> replies = new ArrayList<>(); // 대댓글 리스트
 
     @PrePersist
     public void prePersist() {

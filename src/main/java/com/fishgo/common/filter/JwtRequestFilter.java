@@ -39,15 +39,15 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             accessToken = authHeader.substring(7);
         }
 
-        String username = null;
+        long userId = 0;
         Users user = null;
 
         // 2. Access Token 검증
         if (accessToken != null) {
-            username = jwtUtil.extractUsername(accessToken);
+            userId = jwtUtil.extractUserId(accessToken);
 
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                user = usersRepository.findByUserId(username)
+            if (userId != 0 && SecurityContextHolder.getContext().getAuthentication() == null) {
+                user = usersRepository.findById(userId)
                         .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다."));
 
                 // 사용자의 권한을 GrantedAuthority 리스트로 변환 (예: user.getRole() = "ROLE_USER")
@@ -66,11 +66,12 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authToken);
 
 
+
             }
         }
 
         // 3. Access Token이 만료된 경우 Refresh Token으로 갱신
-        if (accessToken != null && username != null && user != null && !jwtUtil.isTokenValid(accessToken, user)) {
+        if (accessToken != null && userId != 0 && user != null && !jwtUtil.isTokenValid(accessToken, user)) {
             Cookie[] cookies = request.getCookies();
             String refreshToken = null;
             if (cookies != null) {

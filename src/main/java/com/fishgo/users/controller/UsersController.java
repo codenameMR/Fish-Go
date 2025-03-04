@@ -20,9 +20,9 @@ public class UsersController {
 
   /*  @Operation(summary = "사용자 개요", description = "사용자의 게시글, 댓글, 받은 좋아요 개수를 반환합니다.")
     @GetMapping("/overview")
-    public ResponseEntity<?> getOverview(@RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getOverview(@("Authorization") String token) {
 
-        String userId = jwtUtil.extractUsername(token);
+        String userId = jwtUtil.extractUserId(token);
         UserOverviewDto overviewDto = usersService.getOverview(userId);
 
         return ResponseEntity.ok(new ApiResponse<>("사용자 오버뷰 로드 성공.", HttpStatus.OK.value(), overviewDto));

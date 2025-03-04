@@ -33,7 +33,7 @@ public class PostsService {
 
         String imgPath = null;
         if (file != null && !file.isEmpty()) {
-            imgPath = uploadImage(file, user.getUserId());
+            imgPath = uploadImage(file, user.getEmail());
         }
 
         Posts post = Posts.builder()
@@ -92,7 +92,7 @@ public class PostsService {
             if (imgPath != null) {
                 deleteOldImage(imgPath);
             }
-            imgPath = uploadImage(file, post.getUsers().getUserId());
+            imgPath = uploadImage(file, post.getUsers().getEmail());
         }
 
         post.setTitle(postsDto.getTitle());
@@ -123,8 +123,8 @@ public class PostsService {
 
     @Transactional
     public void deletePost(Long postId) {
-        Posts post = postsRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
+        Posts post = findById(postId);
+
         postsRepository.delete(post);
     }
 
@@ -152,6 +152,11 @@ public class PostsService {
                 throw new RuntimeException("기존 이미지 삭제 실패", e);
             }
         }
+    }
+
+    public Posts findById(long postId) {
+        return postsRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
     }
 
 }

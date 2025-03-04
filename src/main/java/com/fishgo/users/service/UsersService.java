@@ -30,14 +30,14 @@ public class UsersService {
     private final PostsRepository postsRepository;
 
     @Transactional
-    public Users registerUser(UsersDto usersDto){
-        if(usersRepository.existsByUserId(usersDto.getUserId())){
+    public void registerUser(UsersDto usersDto) throws Exception{
+        if(usersRepository.existsByEmail(usersDto.getEmail())){
             throw new IllegalArgumentException("이미 존재하는 아이디입니다.");
         }
 
         String encodedPassword = passwordEncoder.encode(usersDto.getPassword());
         Users user = Users.builder()
-                .userId(usersDto.getUserId())
+                .email(usersDto.getEmail())
                 .name(usersDto.getName())
                 .password(encodedPassword)
                 .role("USER")
@@ -45,13 +45,12 @@ public class UsersService {
 
         Users saveUser = usersRepository.save(user);
 
-        createUserDir(saveUser.getUserId());
+        createUserDir(saveUser.getEmail());
 
-        return saveUser;
     }
 
     public Map<String, Object> loginUser(UsersDto usersDto, HttpServletResponse response) {
-        Users user = findByUserId(usersDto.getUserId());
+        Users user = findByUserEmail(usersDto.getEmail());
 
         if(!passwordEncoder.matches(usersDto.getPassword(), user.getPassword())){
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
@@ -91,9 +90,9 @@ public class UsersService {
     @Transactional
     public void deleteUser(String refreshToken, HttpServletResponse response) throws Exception {
 
-        String userId = jwtUtil.extractUsername(refreshToken);
+        long userId = jwtUtil.extractUserId(refreshToken);
         log.debug("userId : {}", userId);
-        if(userId == null){
+        if(userId == 0){
             throw new Exception("사용자 정보를 찾을 수 없습니다.");
         }
 
@@ -104,7 +103,7 @@ public class UsersService {
         cookie.setPath("/");
         cookie.setMaxAge(0); // 즉시 만료
         response.addCookie(cookie);
-        usersRepository.deleteByUserId(userId);
+        usersRepository.deleteById(userId);
     }
 
     private void createUserDir(String userName) {
@@ -114,8 +113,13 @@ public class UsersService {
         new File(path + "/posts").mkdirs();
     }
 
-    public Users findByUserId(String userId){
-        return usersRepository.findByUserId(userId)
+    public Users findByUserId(long userId){
+        return usersRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저 정보를 찾을 수 없습니다."));
+    }
+
+    public Users findByUserEmail(String email){
+        return usersRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("유저 정보를 찾을 수 없습니다."));
     }
 

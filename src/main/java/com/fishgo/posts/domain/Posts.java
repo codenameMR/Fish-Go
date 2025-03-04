@@ -1,5 +1,6 @@
 package com.fishgo.posts.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fishgo.users.domain.Users;
 import jakarta.persistence.*;
 import lombok.*;
@@ -8,6 +9,7 @@ import org.hibernate.type.SqlTypes;
 
 import java.util.Map;
 
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Getter
 @Setter
