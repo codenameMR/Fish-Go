@@ -34,7 +34,7 @@ public class AuthController {
 
     @Operation(summary = "회원가입", description = "사용자 정보를 기반으로 회원가입을 처리합니다.")
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody @Valid UsersDto usersDto, BindingResult bindingResult) {
+    public ResponseEntity<?> register(@RequestBody @Valid UsersDto usersDto, BindingResult bindingResult) throws Exception {
 
         if (bindingResult.hasErrors()) {
             //DTO단에서 검증 오류가 있을 경우 오류 메시지를 추출하여 반환
@@ -47,6 +47,7 @@ public class AuthController {
         }
 
         try {
+            usersService.registerUser(usersDto);
             ApiResponse<Users> response = new ApiResponse<>("회원가입이 성공적으로 완료되었습니다.", HttpStatus.OK.value());
             return ResponseEntity.ok(response);
 
@@ -55,6 +56,9 @@ public class AuthController {
             ApiResponse<List<String>> errorResponse = new ApiResponse<>(e.getMessage(), HttpStatus.BAD_REQUEST.value());
 
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            return null;
         }
     }
 
@@ -104,7 +108,7 @@ public class AuthController {
         }
 
         try {
-            String userId = jwtUtil.extractUsername(refreshToken);
+            long userId = jwtUtil.extractUserId(refreshToken);
             Users user = usersService.findByUserId(userId);
 
             if (jwtUtil.isTokenValid(refreshToken, user)) {

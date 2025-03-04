@@ -20,10 +20,12 @@ public class UsersDto {
 
     private static final String ESSENTIAL = " 필수 입력 항목입니다.";
 
+    private Long id;
+
     @Schema(description = "사용자의 고유 아이디 (이메일 형식)", example = "test@naver.com")
     @NotBlank(message = "아이디는" + ESSENTIAL)
     @Email(message = "아이디는 이메일 형식이어야 합니다.")
-    private String userId;
+    private String email;
 
     @Schema(description = "사용자 이름", example = "홍길동")
     @NotBlank(message = "이름은" + ESSENTIAL)

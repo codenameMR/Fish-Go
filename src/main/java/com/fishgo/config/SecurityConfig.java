@@ -25,7 +25,9 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtRequestFilter jwtRequestFilter) throws Exception {
-        http.csrf(AbstractHttpConfigurer::disable)
+        http
+            .csrf(AbstractHttpConfigurer::disable)
+            .cors(AbstractHttpConfigurer::disable) // 임시 CORS 해제
             .sessionManagement((sessionManagement) ->
                     sessionManagement
                             .sessionCreationPolicy(SessionCreationPolicy.STATELESS)// 세션 관리 정책

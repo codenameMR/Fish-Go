@@ -17,8 +17,8 @@ public class Users {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @Column(name = "user_id", unique = true, nullable = false)
-    private String userId;
+    @Column(name = "email", unique = true, nullable = false)
+    private String email;
 
     @Column(nullable = false)
     private String name;

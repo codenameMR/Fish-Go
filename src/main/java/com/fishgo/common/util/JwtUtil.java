@@ -31,7 +31,8 @@ public class JwtUtil {
 
     private String buildToken(Users users, long expiration) {
         return Jwts.builder()
-                .subject(users.getUserId())
+                .subject(users.getId().toString())
+                .claim("email", users.getEmail())
                 .claim("role", users.getRole())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiration))
@@ -40,14 +41,14 @@ public class JwtUtil {
     }
 
     // 토큰에서 사용자 이름 추출
-    public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
+    public long extractUserId(String token) {
+        return Long.parseLong(extractClaim(token, Claims::getSubject));
     }
 
     // 토큰 유효성 검사
     public boolean isTokenValid(String token, Users users) {
-        final String username = extractUsername(token);
-        return (username.equals(users.getUserId()) && !isTokenExpired(token));
+        final long userId = extractUserId(token);
+        return (userId == users.getId() && !isTokenExpired(token));
     }
 
     // 토큰 만료 여부 확인
