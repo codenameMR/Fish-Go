@@ -14,5 +14,5 @@ public class CommentDto {
     private String contents;       // 댓글 내용
     private LocalDateTime createdAt;
     private Long parentId;         // 부모 댓글 ID
-    private Long reportCount;
+    private Long likeCount;
 }

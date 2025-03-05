@@ -22,7 +22,7 @@ public class CommentResponse {
     @Schema(description = "부모 댓글 ID", nullable = true)
     private Long parentId;
 
-    @Schema(description = "신고 횟수")
-    private Long reportCount;
+    @Schema(description = "좋아요 수")
+    private Long likeCount;
 
 }
