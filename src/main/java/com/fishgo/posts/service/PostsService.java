@@ -2,6 +2,7 @@ package com.fishgo.posts.service;
 
 import com.fishgo.posts.domain.Posts;
 import com.fishgo.posts.dto.PostsDto;
+import com.fishgo.posts.dto.mapper.PostsMapper;
 import com.fishgo.posts.respository.PostsRepository;
 import com.fishgo.users.domain.Users;
 import com.fishgo.users.repository.UsersRepository;
@@ -25,35 +26,25 @@ public class PostsService {
 
     private final PostsRepository postsRepository;
     private final UsersRepository usersRepository;
+    private final PostsMapper postsMapper;
 
-    public Posts createPost(PostsDto postsDto, MultipartFile file) {
-
+    public PostsDto createPost(PostsDto postsDto, MultipartFile file) {
         Users user = usersRepository.findById(postsDto.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         String imgPath = null;
         if (file != null && !file.isEmpty()) {
-            imgPath = uploadImage(file, user.getUserId());
+            imgPath = uploadImage(file, Long.toString(user.getId()));
         }
 
-        Posts post = Posts.builder()
-                .users(user)
-                .hashTag(postsDto.getHashTag())
-                .title(postsDto.getTitle())
-                .contents(postsDto.getContents())
-                .img(imgPath)
-                .reportCount(0)
-                .isActive(true)
-                .likeCount(0)
-                .viewCount(0)
-                .location(postsDto.getLocation())
-                .fishType(postsDto.getFishType())
-                .fishSize(postsDto.getFishSize())
-                .metaData(postsDto.getMetaData())
-                .build();
+        Posts post = postsMapper.toEntity(postsDto);
 
+        post.setUsers(user);
+        post.setImg(imgPath);
 
-        return postsRepository.save(post);
+        Posts savedPost = postsRepository.save(post);
+
+        return postsMapper.toDto(savedPost);
     }
 
     public List<PostsDto> searchPosts(String title, String hashTag, String fishType) {
@@ -61,19 +52,23 @@ public class PostsService {
 
         return posts.stream()
                 .map(post -> new PostsDto(
+                        post.getId(),
                         post.getUsers().getId(),
                         post.getHashTag(),
                         post.getTitle(),
                         post.getContents(),
                         post.getImg(),
-                        post.getMetaData(),
                         post.getReportCount(),
                         post.getIsActive(),
                         post.getLikeCount(),
                         post.getViewCount(),
                         post.getLocation(),
                         post.getFishType(),
-                        post.getFishSize()
+                        post.getFishSize(),
+                        post.getCreatedAt(),
+                        post.getIsModify(),
+                        post.getLat(),
+                        post.getLon()
                 ))
                 .collect(Collectors.toList());
     }
@@ -92,39 +87,29 @@ public class PostsService {
             if (imgPath != null) {
                 deleteOldImage(imgPath);
             }
-            imgPath = uploadImage(file, post.getUsers().getUserId());
+            imgPath = uploadImage(file, Long.toString(post.getUsers().getId()));
         }
 
         post.setTitle(postsDto.getTitle());
         post.setContents(postsDto.getContents());
         post.setHashTag(postsDto.getHashTag());
         post.setImg(imgPath);
-        post.setMetaData(postsDto.getMetaData());
+        post.setLat(postsDto.getLat());
+        post.setLon(postsDto.getLon());
         post.setLocation(postsDto.getLocation());
         post.setFishType(postsDto.getFishType());
         post.setFishSize(postsDto.getFishSize());
+        post.setIsModify(true);
 
-        return new PostsDto(
-                post.getUsers().getId(),
-                post.getHashTag(),
-                post.getTitle(),
-                post.getContents(),
-                post.getImg(),
-                post.getMetaData(),
-                post.getReportCount(),
-                post.getIsActive(),
-                post.getLikeCount(),
-                post.getViewCount(),
-                post.getLocation(),
-                post.getFishType(),
-                post.getFishSize()
-        );
+        Posts updatedPost = postsRepository.save(post);
+
+        return postsMapper.toDto(updatedPost);
     }
 
     @Transactional
     public void deletePost(Long postId) {
-        Posts post = postsRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
+        Posts post = findById(postId);
+
         postsRepository.delete(post);
     }
 
@@ -152,6 +137,11 @@ public class PostsService {
                 throw new RuntimeException("기존 이미지 삭제 실패", e);
             }
         }
+    }
+
+    public Posts findById(long postId) {
+        return postsRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
     }
 
 }
