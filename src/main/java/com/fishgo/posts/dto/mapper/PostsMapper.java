@@ -16,8 +16,6 @@ public interface PostsMapper {
     @Mapping(target = "title", source = "title")
     @Mapping(target = "contents", source = "contents")
     @Mapping(target = "img", source = "img")
-    @Mapping(target = "reportCount", source = "reportCount")
-    @Mapping(target = "isActive", source = "isActive")
     @Mapping(target = "likeCount", source = "likeCount")
     @Mapping(target = "viewCount", source = "viewCount")
     @Mapping(target = "location", source = "location")
@@ -30,13 +28,11 @@ public interface PostsMapper {
     // PostsDto를 Posts 엔티티로 변환
     @Mapping(target = "users", ignore = true)  // users는 Service에서 설정할 예정이므로 ignore
     @Mapping(target = "createdAt", ignore = true)  // createdAt은 자동으로 처리
-    @Mapping(target = "isModify", source = "dto.isModify")
+    @Mapping(target = "isModify", source = "dto.isModify", defaultValue = "false")
     @Mapping(target = "hashTag", source = "dto.hashTag")
     @Mapping(target = "title", source = "dto.title")
     @Mapping(target = "contents", source = "dto.contents")
     @Mapping(target = "img", source = "dto.img")
-    @Mapping(target = "reportCount", source = "dto.reportCount")
-    @Mapping(target = "isActive", source = "dto.isActive")
     @Mapping(target = "likeCount", source = "dto.likeCount")
     @Mapping(target = "viewCount", source = "dto.viewCount")
     @Mapping(target = "location", source = "dto.location")

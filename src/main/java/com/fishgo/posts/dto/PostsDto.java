@@ -31,10 +31,6 @@ public class PostsDto {
 
     private String img;
 
-    private int reportCount;
-
-    private Boolean isActive;
-
     private int likeCount;
 
     private int viewCount;

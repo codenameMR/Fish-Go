@@ -41,12 +41,6 @@ public class Posts {
     @Column(columnDefinition = "TEXT")
     private String img;
 
-    @Column(name = "report_count", nullable = false, columnDefinition = "INT DEFAULT 0")
-    private Integer reportCount;
-
-    @Column(name = "is_active", nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
-    private Boolean isActive;
-
     @Column(name = "like_count", nullable = false, columnDefinition = "INT DEFAULT 0")
     private Integer likeCount;
 

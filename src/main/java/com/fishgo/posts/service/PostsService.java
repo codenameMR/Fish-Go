@@ -48,28 +48,8 @@ public class PostsService {
     }
 
     public List<PostsDto> searchPosts(String title, String hashTag, String fishType) {
-        List<Posts> posts = postsRepository.searchPosts(title, hashTag, fishType);
-
-        return posts.stream()
-                .map(post -> new PostsDto(
-                        post.getId(),
-                        post.getUsers().getId(),
-                        post.getHashTag(),
-                        post.getTitle(),
-                        post.getContents(),
-                        post.getImg(),
-                        post.getReportCount(),
-                        post.getIsActive(),
-                        post.getLikeCount(),
-                        post.getViewCount(),
-                        post.getLocation(),
-                        post.getFishType(),
-                        post.getFishSize(),
-                        post.getCreatedAt(),
-                        post.getIsModify(),
-                        post.getLat(),
-                        post.getLon()
-                ))
+        return postsRepository.searchPosts(title, hashTag, fishType).stream()
+                .map(postsMapper::toDto)
                 .collect(Collectors.toList());
     }
 
