@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @Getter
@@ -15,6 +16,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PostsDto {
     private static final String ESSENTIAL = " 필수 입력 항목입니다.";
+
+    private Long id;
 
     private Long userId;
 
@@ -32,7 +35,7 @@ public class PostsDto {
 
     private int reportCount;
 
-    private boolean isActive;
+    private Boolean isActive;
 
     private int likeCount;
 
@@ -43,5 +46,9 @@ public class PostsDto {
     private String fishType;
 
     private float fishSize;
+
+    private LocalDateTime createdAt;
+
+    private Boolean isModify;
 
 }

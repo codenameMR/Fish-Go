@@ -7,6 +7,8 @@ import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.Map;
 
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
@@ -23,7 +25,7 @@ public class Posts {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private Users users;
 
@@ -63,6 +65,21 @@ public class Posts {
 
     @Column(name = "fish_size")
     private Float fishSize;
+
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.createdAt = LocalDateTime.now();
+    }
+
+    @Column(name = "is_modify", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean isModify;
 
 //    @OneToMany(mappedBy = "posts", cascade = CascadeType.ALL, orphanRemoval = true)
 //    private List<Comment> comments;
