@@ -3,7 +3,8 @@ package com.fishgo.users.service;
 import com.fishgo.common.util.JwtUtil;
 import com.fishgo.posts.respository.PostsRepository;
 import com.fishgo.users.domain.Users;
-import com.fishgo.users.dto.UsersDto;
+import com.fishgo.users.dto.LoginRequestDto;
+import com.fishgo.users.dto.SignupRequestDto;
 import com.fishgo.users.repository.UsersRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -28,7 +29,7 @@ public class UsersService {
     private final PostsRepository postsRepository;
 
     @Transactional
-    public void registerUser(UsersDto usersDto) throws Exception{
+    public void registerUser(SignupRequestDto usersDto) throws Exception{
         if(usersRepository.existsByEmail(usersDto.getEmail())){
             throw new IllegalArgumentException("이미 존재하는 아이디입니다.");
         }
@@ -47,7 +48,7 @@ public class UsersService {
 
     }
 
-    public Map<String, Object> loginUser(UsersDto usersDto, HttpServletResponse response) {
+    public Map<String, Object> loginUser(LoginRequestDto usersDto, HttpServletResponse response) {
         Users user = findByUserEmail(usersDto.getEmail());
 
         if(!passwordEncoder.matches(usersDto.getPassword(), user.getPassword())){

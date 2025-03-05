@@ -4,7 +4,8 @@ import com.fishgo.common.response.ApiResponse;
 import com.fishgo.common.response.AuthResponse;
 import com.fishgo.common.util.JwtUtil;
 import com.fishgo.users.domain.Users;
-import com.fishgo.users.dto.UsersDto;
+import com.fishgo.users.dto.LoginRequestDto;
+import com.fishgo.users.dto.SignupRequestDto;
 import com.fishgo.users.service.UsersService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,7 +35,7 @@ public class AuthController {
 
     @Operation(summary = "회원가입", description = "사용자 정보를 기반으로 회원가입을 처리합니다.")
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody @Valid UsersDto usersDto, BindingResult bindingResult) throws Exception {
+    public ResponseEntity<?> register(@RequestBody @Valid SignupRequestDto usersDto, BindingResult bindingResult) throws Exception {
 
         if (bindingResult.hasErrors()) {
             //DTO단에서 검증 오류가 있을 경우 오류 메시지를 추출하여 반환
@@ -56,15 +57,12 @@ public class AuthController {
             ApiResponse<List<String>> errorResponse = new ApiResponse<>(e.getMessage(), HttpStatus.BAD_REQUEST.value());
 
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            return null;
         }
     }
 
     @Operation(summary = "로그인", description = "아이디와 비밀번호로 로그인을 수행합니다.")
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody UsersDto usersDto, HttpServletResponse response){
+    public ResponseEntity<?> login(@RequestBody LoginRequestDto usersDto, HttpServletResponse response){
         Map<String, Object> responseData;
 
         try {
