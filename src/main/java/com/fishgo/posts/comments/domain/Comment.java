@@ -43,9 +43,9 @@ public class Comment {
     @Column(name = "contents", nullable = false)
     private String contents;
 
-    // 신고 횟수 (기본값 0)
-    @Column(name = "report_count", nullable = false)
-    private Integer reportCount = 0;
+    // 좋아요 수 (기본값 0)
+    @Column(name = "like_count", nullable = false)
+    private int likeCount;
 
     // 부모 댓글 (NULL이면 최상위 댓글)
     @ManyToOne(fetch = FetchType.LAZY)
