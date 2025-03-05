@@ -58,7 +58,6 @@ public class PostsService {
                         post.getTitle(),
                         post.getContents(),
                         post.getImg(),
-                        post.getMetaData(),
                         post.getReportCount(),
                         post.getIsActive(),
                         post.getLikeCount(),
@@ -67,7 +66,9 @@ public class PostsService {
                         post.getFishType(),
                         post.getFishSize(),
                         post.getCreatedAt(),
-                        post.getIsModify()
+                        post.getIsModify(),
+                        post.getLat(),
+                        post.getLon()
                 ))
                 .collect(Collectors.toList());
     }
@@ -93,7 +94,8 @@ public class PostsService {
         post.setContents(postsDto.getContents());
         post.setHashTag(postsDto.getHashTag());
         post.setImg(imgPath);
-        post.setMetaData(postsDto.getMetaData());
+        post.setLat(postsDto.getLat());
+        post.setLon(postsDto.getLon());
         post.setLocation(postsDto.getLocation());
         post.setFishType(postsDto.getFishType());
         post.setFishSize(postsDto.getFishSize());

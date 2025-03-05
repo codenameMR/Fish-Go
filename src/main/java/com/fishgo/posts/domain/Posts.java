@@ -41,10 +41,6 @@ public class Posts {
     @Column(columnDefinition = "TEXT")
     private String img;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "meta_data", columnDefinition = "JSONB")
-    private Map<String, Object> metaData;
-
     @Column(name = "report_count", nullable = false, columnDefinition = "INT DEFAULT 0")
     private Integer reportCount;
 
@@ -65,6 +61,12 @@ public class Posts {
 
     @Column(name = "fish_size")
     private Float fishSize;
+
+    @Column(name = "lat")
+    private Double lat;
+
+    @Column(name = "lon")
+    private Double lon;
 
     private LocalDateTime createdAt;
 

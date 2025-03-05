@@ -16,7 +16,6 @@ public interface PostsMapper {
     @Mapping(target = "title", source = "title")
     @Mapping(target = "contents", source = "contents")
     @Mapping(target = "img", source = "img")
-    @Mapping(target = "metaData", source = "metaData")
     @Mapping(target = "reportCount", source = "reportCount")
     @Mapping(target = "isActive", source = "isActive")
     @Mapping(target = "likeCount", source = "likeCount")
@@ -24,6 +23,8 @@ public interface PostsMapper {
     @Mapping(target = "location", source = "location")
     @Mapping(target = "fishType", source = "fishType")
     @Mapping(target = "fishSize", source = "fishSize")
+    @Mapping(target = "lat", source = "lat")
+    @Mapping(target = "lon", source = "lon")
     PostsDto toDto(Posts post);
 
     // PostsDto를 Posts 엔티티로 변환
@@ -34,7 +35,6 @@ public interface PostsMapper {
     @Mapping(target = "title", source = "dto.title")
     @Mapping(target = "contents", source = "dto.contents")
     @Mapping(target = "img", source = "dto.img")
-    @Mapping(target = "metaData", source = "dto.metaData")
     @Mapping(target = "reportCount", source = "dto.reportCount")
     @Mapping(target = "isActive", source = "dto.isActive")
     @Mapping(target = "likeCount", source = "dto.likeCount")
@@ -42,5 +42,7 @@ public interface PostsMapper {
     @Mapping(target = "location", source = "dto.location")
     @Mapping(target = "fishType", source = "dto.fishType")
     @Mapping(target = "fishSize", source = "dto.fishSize")
+    @Mapping(target = "lat", source = "dto.lat")
+    @Mapping(target = "lon", source = "dto.lon")
     Posts toEntity(PostsDto dto);
 }

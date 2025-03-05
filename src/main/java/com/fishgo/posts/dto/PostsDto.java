@@ -31,8 +31,6 @@ public class PostsDto {
 
     private String img;
 
-    private Map<String, Object> metaData;
-
     private int reportCount;
 
     private Boolean isActive;
@@ -50,5 +48,9 @@ public class PostsDto {
     private LocalDateTime createdAt;
 
     private Boolean isModify;
+
+    private double lat;
+
+    private double lon;
 
 }
