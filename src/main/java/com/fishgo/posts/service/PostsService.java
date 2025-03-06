@@ -1,8 +1,10 @@
 package com.fishgo.posts.service;
 
+import com.fishgo.posts.domain.Hashtag;
 import com.fishgo.posts.domain.Posts;
 import com.fishgo.posts.dto.PostsDto;
 import com.fishgo.posts.dto.mapper.PostsMapper;
+import com.fishgo.posts.respository.HashtagRepository;
 import com.fishgo.posts.respository.PostsRepository;
 import com.fishgo.users.domain.Users;
 import com.fishgo.users.repository.UsersRepository;
@@ -17,7 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,29 +28,52 @@ public class PostsService {
 
     private final PostsRepository postsRepository;
     private final UsersRepository usersRepository;
+    private final HashtagRepository hashtagRepository;
     private final PostsMapper postsMapper;
 
+    @Transactional
     public PostsDto createPost(PostsDto postsDto, MultipartFile file) {
         Users user = usersRepository.findById(postsDto.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        String imgPath = null;
+        // 이미지 업로드
+        String imgPath = "";
         if (file != null && !file.isEmpty()) {
             imgPath = uploadImage(file, Long.toString(user.getId()));
         }
 
-        Posts post = postsMapper.toEntity(postsDto);
+        // PostsDto에서 Hashtag 처리
+//        Set<Hashtag> hashtags = new HashSet<>();
+//        if (postsDto.getHashTag() != null) {
+//            for (String tag : postsDto.getHashTag()) {
+//                Hashtag hashtag = new Hashtag(tag);
+//                hashtag.setName(tag);
+//                // 먼저 해시태그를 저장
+//                Hashtag savedHashtag = hashtagRepository.save(hashtag);
+//
+//                hashtagRepository.flush();
+//
+//                hashtags.add(savedHashtag); // 저장된 해시태그 객체를 Set에 추가
+//            }
+//        }
 
+        // 게시글 저장
+        Posts post = postsMapper.toEntity(postsDto);
         post.setUsers(user);
         post.setImg(imgPath);
+//      post.setHashTag(hashtags);
+
+        // 해시태그 저장 해결 못함
+        // 트랜잭션 때문에 관계 테이블(post_hashtags)에 값을 저장 못하는 것으로 판단됨
+        post.setHashTag(null);
 
         Posts savedPost = postsRepository.save(post);
 
         return postsMapper.toDto(savedPost);
     }
 
-    public List<PostsDto> searchPosts(String title, String hashTag, String fishType) {
-        return postsRepository.searchPosts(title, hashTag, fishType).stream()
+    public List<PostsDto> searchPosts(String title, String fishType) {
+        return postsRepository.searchPosts(title, fishType).stream()
                 .map(postsMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -72,7 +97,7 @@ public class PostsService {
 
         post.setTitle(postsDto.getTitle());
         post.setContents(postsDto.getContents());
-        post.setHashTag(postsDto.getHashTag());
+//        post.setHashTag(postsDto.getHashTag());
         post.setImg(imgPath);
         post.setLat(postsDto.getLat());
         post.setLon(postsDto.getLon());
@@ -122,6 +147,15 @@ public class PostsService {
     public Posts findById(long postId) {
         return postsRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
+    }
+
+    @Transactional
+    public PostsDto getPostDetail(Long postId) {
+        Posts post = postsRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시물이 존재하지 않습니다."));
+
+        // 게시물을 DTO로 변환하여 반환
+        return postsMapper.toDto(post);
     }
 
 }
