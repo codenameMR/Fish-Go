@@ -9,7 +9,9 @@ import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
@@ -29,8 +31,14 @@ public class Posts {
     @JoinColumn(name = "user_id", nullable = false)
     private Users users;
 
-    @Column(columnDefinition = "TEXT")
-    private String hashTag;
+    @ManyToMany
+    @JoinTable(
+            name = "post_hashtags",
+            joinColumns = @JoinColumn(name = "post_id"),
+            inverseJoinColumns = @JoinColumn(name = "hashtag_id")
+    )
+    @Builder.Default
+    private Set<Hashtag> hashTag = new HashSet<>();
 
     @Column(nullable = false, length = 255)
     private String title;

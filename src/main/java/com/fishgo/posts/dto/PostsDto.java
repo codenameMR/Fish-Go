@@ -1,5 +1,6 @@
 package com.fishgo.posts.dto;
 
+import com.fishgo.posts.domain.Hashtag;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -8,7 +9,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -21,7 +24,7 @@ public class PostsDto {
 
     private Long userId;
 
-    private String hashTag;
+    private List<String> hashTag;
 
     @NotBlank(message = "제목은" + ESSENTIAL)
     @Size(min = 1, max = 50, message = "제목은 1자 이상 50자 이하여야 합니다.")
