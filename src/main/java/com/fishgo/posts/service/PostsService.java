@@ -43,29 +43,29 @@ public class PostsService {
         }
 
         // PostsDto에서 Hashtag 처리
-//        Set<Hashtag> hashtags = new HashSet<>();
-//        if (postsDto.getHashTag() != null) {
-//            for (String tag : postsDto.getHashTag()) {
-//                Hashtag hashtag = new Hashtag(tag);
-//                hashtag.setName(tag);
-//                // 먼저 해시태그를 저장
-//                Hashtag savedHashtag = hashtagRepository.save(hashtag);
-//
+        Set<Hashtag> hashtags = new HashSet<>();
+        if (postsDto.getHashTag() != null) {
+            for (String tag : postsDto.getHashTag()) {
+                Hashtag hashtag = new Hashtag(tag);
+                hashtag.setName(tag);
+                // 먼저 해시태그를 저장
+                Hashtag savedHashtag = hashtagRepository.save(hashtag);
+
 //                hashtagRepository.flush();
-//
-//                hashtags.add(savedHashtag); // 저장된 해시태그 객체를 Set에 추가
-//            }
-//        }
+
+                hashtags.add(savedHashtag); // 저장된 해시태그 객체를 Set에 추가
+            }
+        }
 
         // 게시글 저장
         Posts post = postsMapper.toEntity(postsDto);
         post.setUsers(user);
         post.setImg(imgPath);
-//      post.setHashTag(hashtags);
+        post.setHashTag(hashtags);
 
         // 해시태그 저장 해결 못함
         // 트랜잭션 때문에 관계 테이블(post_hashtags)에 값을 저장 못하는 것으로 판단됨
-        post.setHashTag(null);
+//        post.setHashTag(null);
 
         Posts savedPost = postsRepository.save(post);
 
