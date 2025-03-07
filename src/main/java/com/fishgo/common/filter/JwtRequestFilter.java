@@ -2,6 +2,8 @@ package com.fishgo.common.filter;
 
 import com.fishgo.common.util.JwtUtil;
 import com.fishgo.users.domain.Users;
+import com.fishgo.users.dto.JwtRequestDto;
+import com.fishgo.users.dto.mapper.UserMapper;
 import com.fishgo.users.repository.UsersRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -27,6 +29,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UsersRepository usersRepository;
+    private final UserMapper userMapper;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -40,20 +43,21 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         }
 
         long userId = 0;
-        Users user = null;
+        JwtRequestDto jwtRequestDto = null;
 
         // 2. Access Token 검증
         if (accessToken != null) {
             userId = jwtUtil.extractUserId(accessToken);
 
             if (userId != 0 && SecurityContextHolder.getContext().getAuthentication() == null) {
-                user = usersRepository.findById(userId)
+                Users user = usersRepository.findById(userId)
                         .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다."));
+
+                jwtRequestDto = userMapper.toJwtRequestDto(user);
 
                 // 사용자의 권한을 GrantedAuthority 리스트로 변환 (예: user.getRole() = "ROLE_USER")
                 List<GrantedAuthority> authorities =
                         Collections.singletonList(new SimpleGrantedAuthority(user.getRole()));
-
                 // Authentication 객체 생성
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
@@ -66,12 +70,11 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authToken);
 
 
-
             }
         }
 
         // 3. Access Token이 만료된 경우 Refresh Token으로 갱신
-        if (accessToken != null && userId != 0 && user != null && !jwtUtil.isTokenValid(accessToken, user)) {
+        if (accessToken != null && userId != 0 && jwtRequestDto != null && !jwtUtil.isTokenValid(accessToken, jwtRequestDto)) {
             Cookie[] cookies = request.getCookies();
             String refreshToken = null;
             if (cookies != null) {
@@ -85,8 +88,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
             if (refreshToken != null) {
                 // Refresh Token 검증
-                if (jwtUtil.isTokenValid(refreshToken, user)) {
-                    String newAccessToken = jwtUtil.generateAccessToken(user);
+                if (jwtUtil.isTokenValid(refreshToken, jwtRequestDto)) {
+                    String newAccessToken = jwtUtil.generateAccessToken(jwtRequestDto);
                     response.setHeader("Authorization", "Bearer " + newAccessToken);
                 }
             }

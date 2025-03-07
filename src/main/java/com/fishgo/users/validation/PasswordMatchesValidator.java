@@ -1,16 +1,16 @@
 package com.fishgo.users.validation;
 
-import com.fishgo.users.dto.UsersDto;
+import com.fishgo.users.dto.SignupRequestDto;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-public class PasswordMatchesValidator implements ConstraintValidator<PasswordMatches, UsersDto> {
+public class PasswordMatchesValidator implements ConstraintValidator<PasswordMatches, SignupRequestDto> {
 
     @Override
-    public boolean isValid(UsersDto usersDto, ConstraintValidatorContext context) {
-        if (usersDto.getPassword() == null || usersDto.getConfirmPassword() == null) {
+    public boolean isValid(SignupRequestDto signupDto, ConstraintValidatorContext context) {
+        if (signupDto.getPassword() == null || signupDto.getConfirmPassword() == null) {
             return false;
         }
-        return usersDto.getPassword().equals(usersDto.getConfirmPassword());
+        return signupDto.getPassword().equals(signupDto.getConfirmPassword());
     }
 }

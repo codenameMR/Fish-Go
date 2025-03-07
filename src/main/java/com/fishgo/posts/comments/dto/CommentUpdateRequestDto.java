@@ -6,7 +6,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class CommentUpdateRequest {
+public class CommentUpdateRequestDto {
 
     @Schema(description = "수정할 댓글 ID")
     private Long commentId;

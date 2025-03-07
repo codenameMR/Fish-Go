@@ -1,6 +1,6 @@
 package com.fishgo.common.util;
 
-import com.fishgo.users.domain.Users;
+import com.fishgo.users.dto.JwtRequestDto;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -22,18 +22,18 @@ public class JwtUtil {
     public final long REFRESH_TOKEN_EXPIRATION = 1000 * 60 * 60 * 24 * 7; // 7일
 
     // Access Token 생성
-    public String generateAccessToken(Users user) {
-        return buildToken(user, ACCESS_TOKEN_EXPIRATION);
+    public String generateAccessToken(JwtRequestDto dto) {
+        return buildToken(dto, ACCESS_TOKEN_EXPIRATION);
     }
 
     // Refresh Token 생성
-    public String generateRefreshToken(Users user) { return buildToken(user, REFRESH_TOKEN_EXPIRATION); }
+    public String generateRefreshToken(JwtRequestDto dto) { return buildToken(dto, REFRESH_TOKEN_EXPIRATION); }
 
-    private String buildToken(Users users, long expiration) {
+    private String buildToken(JwtRequestDto dto, long expiration) {
         return Jwts.builder()
-                .subject(users.getId().toString())
-                .claim("email", users.getEmail())
-                .claim("role", users.getRole())
+                .subject(dto.getId().toString())
+                .claim("email", dto.getEmail())
+                .claim("role", dto.getRole())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(SECRET_KEY)
@@ -46,9 +46,9 @@ public class JwtUtil {
     }
 
     // 토큰 유효성 검사
-    public boolean isTokenValid(String token, Users users) {
+    public boolean isTokenValid(String token, JwtRequestDto dto) {
         final long userId = extractUserId(token);
-        return (userId == users.getId() && !isTokenExpired(token));
+        return (userId == dto.getId() && !isTokenExpired(token));
     }
 
     // 토큰 만료 여부 확인
