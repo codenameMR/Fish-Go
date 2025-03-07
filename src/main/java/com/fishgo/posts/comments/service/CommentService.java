@@ -1,10 +1,11 @@
 package com.fishgo.posts.comments.service;
 
 import com.fishgo.posts.comments.domain.Comment;
-import com.fishgo.posts.comments.dto.CommentCreateRequest;
-import com.fishgo.posts.comments.dto.CommentResponse;
-import com.fishgo.posts.comments.dto.CommentUpdateRequest;
+import com.fishgo.posts.comments.dto.CommentCreateRequestDto;
+import com.fishgo.posts.comments.dto.CommentResponseDto;
+import com.fishgo.posts.comments.dto.CommentUpdateRequestDto;
 import com.fishgo.posts.comments.dto.mapper.CommentMapper;
+import com.fishgo.posts.comments.repository.CommentLikeRepository;
 import com.fishgo.posts.comments.repository.CommentRepository;
 import com.fishgo.posts.domain.Posts;
 import com.fishgo.posts.service.PostsService;
@@ -26,14 +27,28 @@ public class CommentService {
     private final UsersService usersService;
     private final PostsService postsService;
     private final CommentMapper commentMapper;
+    private final CommentLikeRepository commentLikeRepository;
 
     // 최적화된 댓글 조회
-    public List<CommentResponse> getCommentsByPostId(Long postId) throws Exception{
-        return commentMapper.toResponseList(commentRepository.findByPostIdWithReplies(postId)) ;
+    public List<CommentResponseDto> getCommentsByPostId(Long postId) throws Exception{
+
+        // 1) 댓글 목록 불러오기
+        List<Comment> comments = commentRepository.findByPostIdWithReplies(postId);
+        // 2) 매퍼로 DTO 변환
+        List<CommentResponseDto> responses = commentMapper.toResponseList(comments);
+
+        // 3) 현재 로그인 사용자
+        Users currentUser = (Users) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        // 4) 댓글 좋아요 여부 재귀함수
+        fillLikeStatusRecursively(responses, currentUser.getId());
+
+        return responses;
+
     }
 
     // 댓글 작성
-    public CommentResponse saveComment(CommentCreateRequest dto) {
+    public CommentResponseDto saveComment(CommentCreateRequestDto dto) {
 
         Comment comment = commentMapper.toCreateEntity(dto);
         // 현재 로그인 사용자 정보 가져오기
@@ -56,7 +71,7 @@ public class CommentService {
         return commentMapper.toResponse(saved);
     }
 
-    public CommentResponse updateComment(CommentUpdateRequest dto) {
+    public CommentResponseDto updateComment(CommentUpdateRequestDto dto) {
         // 현재 로그인 사용자 정보 가져오기
         Users user = (Users) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         // 1) DB에서 댓글 엔티티 조회
@@ -75,9 +90,21 @@ public class CommentService {
         return commentMapper.toResponse(comment);
     }
 
-
     // 댓글 삭제
     public void deleteComment(Long commentId) {
         commentRepository.deleteById(commentId);
+    }
+
+    // 댓글 좋아요 여부 판별
+    private void fillLikeStatusRecursively(List<CommentResponseDto> commentResponsDtos, Long userId) {
+        for (CommentResponseDto resp : commentResponsDtos) {
+            boolean liked = commentLikeRepository.existsByCommentIdAndUserId(resp.getId(), userId);
+            resp.setLiked(liked);
+
+            // 자식 댓글이 있다면 재귀적으로 처리
+            if (resp.getReplies() != null && !resp.getReplies().isEmpty()) {
+                fillLikeStatusRecursively(resp.getReplies(), userId);
+            }
+        }
     }
 }

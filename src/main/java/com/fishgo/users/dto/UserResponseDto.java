@@ -4,10 +4,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
-@Schema(description = "사용자 등록 및 인증 처리를 위한 DTO")
 @Getter
 @Setter
-public class UsersDto {
+public class UserResponseDto {
 
     @Schema(description = "DB에서 생성되는 고유 ID",
             accessMode = Schema.AccessMode.READ_ONLY)
@@ -18,12 +17,6 @@ public class UsersDto {
 
     @Schema(description = "사용자 이름", example = "홍길동")
     private String name;
-
-    @Schema(description = "비밀번호 (최소 8자 이상)", example = "testPW12#$")
-    private String password;
-
-    @Schema(description = "비밀번호 확인", example = "testPW12#$")
-    private String confirmPassword;
 
     @Schema(description = "소셜 로그인 정보")
     private String socialLoginInfo;

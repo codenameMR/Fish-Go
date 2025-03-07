@@ -1,10 +1,10 @@
 package com.fishgo.users.service;
 
 import com.fishgo.common.util.JwtUtil;
-import com.fishgo.posts.respository.PostsRepository;
+import com.fishgo.common.util.NicknameGenerator;
 import com.fishgo.users.domain.Users;
-import com.fishgo.users.dto.LoginRequestDto;
-import com.fishgo.users.dto.SignupRequestDto;
+import com.fishgo.users.dto.*;
+import com.fishgo.users.dto.mapper.UserMapper;
 import com.fishgo.users.repository.UsersRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -16,12 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-
-import java.io.File;
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -30,7 +24,7 @@ public class UsersService {
     private final JwtUtil jwtUtil;
     private final UsersRepository usersRepository;
     private final PasswordEncoder passwordEncoder;
-    private final PostsRepository postsRepository;
+    private final UserMapper userMapper;
 
     @Transactional
     public void registerUser(SignupRequestDto usersDto) throws Exception{
@@ -38,32 +32,43 @@ public class UsersService {
             throw new IllegalArgumentException("이미 존재하는 아이디입니다.");
         }
 
+        String randomName = NicknameGenerator.generateNickname();
+        boolean isNicknameUsed = usersRepository.existsByName(randomName);
+
+        while(isNicknameUsed){
+            randomName = NicknameGenerator.generateNickname();
+            isNicknameUsed = usersRepository.existsByName(randomName);
+        }
+
         String encodedPassword = passwordEncoder.encode(usersDto.getPassword());
+
         Users user = Users.builder()
                 .email(usersDto.getEmail())
-                .name(usersDto.getName())
+                .name(randomName)
                 .password(encodedPassword)
                 .role("USER")
                 .build();
 
         Users saveUser = usersRepository.save(user);
 
-        createUserDir(Long.toString(saveUser.getId()));
+        createUserDir(saveUser.getEmail());
 
     }
 
-    public Map<String, Object> loginUser(LoginRequestDto usersDto, HttpServletResponse response) {
+    public LoginResponseDto loginUser(LoginRequestDto usersDto, HttpServletResponse response) {
         Users user = findByUserEmail(usersDto.getEmail());
 
         if(!passwordEncoder.matches(usersDto.getPassword(), user.getPassword())){
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
+        UserResponseDto userResponseDto = userMapper.toUserResponseDto(user);
+        JwtRequestDto jwtRequestDto = userMapper.toJwtRequestDto(user);
 
-        // 2. 토큰 생성
-        String accessToken = jwtUtil.generateAccessToken(user);
-        String refreshToken = jwtUtil.generateRefreshToken(user);
+        // 토큰 생성
+        String accessToken = jwtUtil.generateAccessToken(jwtRequestDto);
+        String refreshToken = jwtUtil.generateRefreshToken(jwtRequestDto);
 
-        // 3. Refresh Token을 쿠키에 저장
+        // Refresh Token을 쿠키에 저장
         Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
         refreshTokenCookie.setHttpOnly(true);
         refreshTokenCookie.setSecure(true); // HTTPS 사용 시
@@ -72,9 +77,9 @@ public class UsersService {
         response.addCookie(refreshTokenCookie);
 
         // 사용자 및 Access Token Response 데이터 구성
-        Map<String, Object> responseData = new HashMap<>();
-        responseData.put("user", user);
-        responseData.put("accessToken", accessToken);
+        LoginResponseDto responseData = new LoginResponseDto();
+        responseData.setUser(userResponseDto);
+        responseData.setAccessToken(accessToken);
 
 
         return responseData;
@@ -94,7 +99,7 @@ public class UsersService {
     public void deleteUser(String refreshToken, HttpServletResponse response) throws Exception {
 
         long userId = jwtUtil.extractUserId(refreshToken);
-        log.debug("userId : {}", userId);
+        log.debug("deleteUser userId : {}", userId);
         if(userId == 0){
             throw new Exception("사용자 정보를 찾을 수 없습니다.");
         }

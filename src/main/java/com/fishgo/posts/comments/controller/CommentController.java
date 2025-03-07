@@ -1,9 +1,10 @@
 package com.fishgo.posts.comments.controller;
 
 import com.fishgo.common.response.ApiResponse;
-import com.fishgo.posts.comments.dto.CommentCreateRequest;
-import com.fishgo.posts.comments.dto.CommentResponse;
-import com.fishgo.posts.comments.dto.CommentUpdateRequest;
+import com.fishgo.posts.comments.dto.CommentCreateRequestDto;
+import com.fishgo.posts.comments.dto.CommentResponseDto;
+import com.fishgo.posts.comments.dto.CommentUpdateRequestDto;
+import com.fishgo.posts.comments.service.CommentLikeService;
 import com.fishgo.posts.comments.service.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,12 +24,12 @@ import java.util.List;
 public class CommentController {
 
     private final CommentService commentService;
+    private final CommentLikeService commentLikeService;
 
-    // 댓글 조회
     @Operation(summary = "댓글 조회", description = "게시글 ID로 해당 게시물의 댓글을 조회합니다.")
     @GetMapping
-    public ResponseEntity<?> getComments(@RequestParam Long postId) {
-        List<CommentResponse> commentsDtoList;
+    public ResponseEntity<ApiResponse<List<CommentResponseDto>>> getComments(@RequestParam Long postId) {
+        List<CommentResponseDto> commentsDtoList;
 
         try {
             commentsDtoList = commentService.getCommentsByPostId(postId);
@@ -40,23 +41,21 @@ public class CommentController {
         return ResponseEntity.ok(new ApiResponse<>("댓글 조회 성공", HttpStatus.OK.value(), commentsDtoList));
     }
 
-    // 댓글 작성
     @Operation(summary = "댓글 및 대댓글 작성", description = "게시글 ID, 댓글 내용, (대댓글인 경우 부모 댓글의 ID)로 댓글을 작성합니다.")
     @PostMapping
-    public ResponseEntity<?> createComment(@RequestBody CommentCreateRequest commentDto) {
+    public ResponseEntity<ApiResponse<CommentResponseDto>> createComment(@RequestBody CommentCreateRequestDto commentDto) {
 
-        CommentResponse comment = commentService.saveComment(commentDto);
+        CommentResponseDto comment = commentService.saveComment(commentDto);
 
         return ResponseEntity.ok(new ApiResponse<>("댓글 작성 성공", HttpStatus.OK.value(), comment));
     }
 
-    //댓글 수정
     @Operation(summary = "댓글 수정", description = "댓글 ID와 댓글 내용으로 해당 댓글을 수정합니다.")
     @PatchMapping("/{commentId}")
-    public ResponseEntity<?> updateComment(@PathVariable long commentId, @RequestBody CommentUpdateRequest commentDto) {
+    public ResponseEntity<ApiResponse<CommentResponseDto>> updateComment(@PathVariable long commentId, @RequestBody CommentUpdateRequestDto commentDto) {
 
         commentDto.setCommentId(commentId);
-        CommentResponse updatedComment;
+        CommentResponseDto updatedComment;
         try {
             updatedComment = commentService.updateComment(commentDto);
         } catch (Exception e) {
@@ -67,13 +66,25 @@ public class CommentController {
         return ResponseEntity.ok(new ApiResponse<>("댓글 수정 성공", HttpStatus.OK.value(), updatedComment));
     }
 
-
-    // 댓글 삭제
     @Operation(summary = "댓글 삭제", description = "댓글 ID로 해당 댓글을 삭제합니다.")
     @DeleteMapping("/{commentId}")
-    public ResponseEntity<?> deleteComment(@PathVariable Long commentId) {
+    public ResponseEntity<ApiResponse<String>> deleteComment(@PathVariable Long commentId) {
         commentService.deleteComment(commentId);
         return ResponseEntity.ok(new ApiResponse<>("댓글 삭제 성공", HttpStatus.OK.value()));
+    }
+
+    @Operation(summary = "댓글 좋아요", description = "댓글 ID로 해당 댓글에 좋아요를 누릅니다.")
+    @PostMapping("/{commentId}/like")
+    public ResponseEntity<ApiResponse<String>> likeComment(@PathVariable Long commentId) {
+        commentLikeService.likeComment(commentId);
+        return ResponseEntity.ok(new ApiResponse<>("좋아요 성공", HttpStatus.OK.value()));
+    }
+
+    @Operation(summary = "댓글 좋아요 취소", description = "댓글 ID로 해당 댓글에 좋아요를 취소합니다.")
+    @DeleteMapping("/{commentId}/like")
+    public ResponseEntity<ApiResponse<String>> unlikeComment(@PathVariable Long commentId) {
+        commentLikeService.unlikeComment(commentId);
+        return ResponseEntity.ok(new ApiResponse<>("좋아요 취소 성공", HttpStatus.OK.value()));
     }
 
 
