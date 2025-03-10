@@ -4,10 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fishgo.users.domain.Users;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
@@ -23,12 +23,18 @@ public class Posts {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private Users users;
 
-    @Column(columnDefinition = "TEXT")
-    private String hashTag;
+    @ManyToMany
+    @JoinTable(
+            name = "post_hashtag",
+            joinColumns = @JoinColumn(name = "post_id"),
+            inverseJoinColumns = @JoinColumn(name = "hashtag_id")
+    )
+    @Builder.Default
+    private Set<Hashtag> hashtag = new HashSet<>();
 
     @Column(nullable = false, length = 255)
     private String title;
@@ -36,18 +42,9 @@ public class Posts {
     @Column(columnDefinition = "TEXT")
     private String contents;
 
-    @Column(columnDefinition = "TEXT")
-    private String img;
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "meta_data", columnDefinition = "JSONB")
-    private Map<String, Object> metaData;
-
-    @Column(name = "report_count", nullable = false, columnDefinition = "INT DEFAULT 0")
-    private Integer reportCount;
-
-    @Column(name = "is_active", nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
-    private Boolean isActive;
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<Image> images = new HashSet<>();
 
     @Column(name = "like_count", nullable = false, columnDefinition = "INT DEFAULT 0")
     private Integer likeCount;
@@ -64,10 +61,49 @@ public class Posts {
     @Column(name = "fish_size")
     private Float fishSize;
 
-//    @OneToMany(mappedBy = "posts", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<Comment> comments;
-//
+    @Column(name = "lat")
+    private Double lat;
+
+    @Column(name = "lon")
+    private Double lon;
+
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.createdAt = LocalDateTime.now();
+    }
+
+    @Column(name = "is_modify", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean isModify;
+
 //    @OneToMany(mappedBy = "posts", cascade = CascadeType.ALL, orphanRemoval = true)
 //    private List<Pinpoint> pinpoints;
+
+    // 연관관계 메서드
+    public void addImage(Image image) {
+        this.images.add(image);
+        image.setPost(this);
+    }
+
+    public void removeImage(Image image) {
+        this.images.remove(image);
+        image.setPost(null);
+    }
+
+    public void addHashtag(Hashtag hashtag) {
+        this.hashtag.add(hashtag);
+        hashtag.getPosts().add(this);
+    }
+
+    public void removeHashtag(Hashtag hashtag) {
+        this.hashtag.remove(hashtag);
+        hashtag.getPosts().remove(this);
+    }
 
 }

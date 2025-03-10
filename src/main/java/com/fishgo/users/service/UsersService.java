@@ -51,7 +51,7 @@ public class UsersService {
 
         Users saveUser = usersRepository.save(user);
 
-        createUserDir(saveUser.getEmail());
+        createUserDir(Long.toString(saveUser.getId()));
 
     }
 

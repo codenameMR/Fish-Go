@@ -92,6 +92,17 @@ public class CommentService {
 
     // 댓글 삭제
     public void deleteComment(Long commentId) {
+        Users user = (Users) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 댓글이 존재 하지 않습니다."));
+
+        if (!comment.getUser().getId().equals(user.getId())) {
+            throw new SecurityException("본인이 작성한 댓글만 수정할 수 있습니다.");
+        }
+        // 연결된 좋아요(CommentLike) 정보 먼저 삭제
+        commentLikeRepository.deleteAllByCommentId(commentId);
+
         commentRepository.deleteById(commentId);
     }
 
