@@ -13,10 +13,10 @@ public interface UserMapper {
     // Users 엔티티의 필드를 원하는 Dto 필드에 매핑
     @Mapping(target = "id", source = "id")
     @Mapping(target = "email", source = "email")
-    @Mapping(target = "name", source = "name")
+    @Mapping(target = "name", source = "profile.name")
     @Mapping(target = "socialLoginInfo", source = "socialLoginInfo")
     @Mapping(target = "role", source = "role")
-    @Mapping(target = "profileImg", source = "profileImg")
+    @Mapping(target = "profileImg", source = "profile.profileImg")
     UserResponseDto toUserResponseDto(Users users);
 
     @Mapping(target = "id", source = "id")

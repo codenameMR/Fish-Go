@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
@@ -47,17 +48,10 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         }
 
-        try {
-            usersService.registerUser(usersDto);
-            ApiResponse<String> response = new ApiResponse<>("회원가입이 성공적으로 완료되었습니다.", HttpStatus.OK.value());
-            return ResponseEntity.ok(response);
+        usersService.registerUser(usersDto);
+        ApiResponse<String> response = new ApiResponse<>("회원가입이 성공적으로 완료되었습니다.", HttpStatus.OK.value());
+        return ResponseEntity.ok(response);
 
-        } catch (IllegalArgumentException e) {
-            log.error("회원가입 중 예외 발생 : {}", e.getMessage(), e);
-            ApiResponse<String> errorResponse = new ApiResponse<>(e.getMessage(), HttpStatus.BAD_REQUEST.value());
-
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-        }
     }
 
     @Operation(summary = "로그인", description = "아이디와 비밀번호로 로그인을 수행합니다.")
@@ -65,14 +59,9 @@ public class AuthController {
     public ResponseEntity<ApiResponse<LoginResponseDto>> login(@RequestBody LoginRequestDto usersDto, HttpServletResponse response){
         LoginResponseDto loginResponseDto;
 
-        try {
-            // Service에서 반환된 사용자와 Access Token 정보 사용
-            loginResponseDto = usersService.loginUser(usersDto, response);
+        // Service에서 반환된 사용자와 Access Token 정보 사용
+        loginResponseDto = usersService.loginUser(usersDto, response);
 
-        } catch (IllegalArgumentException e) {
-            ApiResponse<LoginResponseDto> errorResponse = new ApiResponse<>(e.getMessage(), HttpStatus.BAD_REQUEST.value());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-        }
         ApiResponse<LoginResponseDto> apiResponse = new ApiResponse<>("로그인 성공 하였습니다.", HttpStatus.OK.value(), loginResponseDto);
         return ResponseEntity.ok(apiResponse);
     }
@@ -87,13 +76,9 @@ public class AuthController {
 
     @Operation(summary = "회원탈퇴")
     @PostMapping("/delete")
-    public ResponseEntity<ApiResponse<String>> delete(@CookieValue(name = "refreshToken") String token, HttpServletResponse response) {
-        try {
-            usersService.deleteUser(token, response);
-        } catch (Exception e) {
-            log.error("회원 탈퇴 실패 : {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(new ApiResponse<>("회원 탈퇴가 정상적으로 이루어지지 않았습니다.", HttpStatus.BAD_REQUEST.value()));
-        }
+    public ResponseEntity<ApiResponse<String>> delete(HttpServletResponse response,
+                                                      @AuthenticationPrincipal Users currentUser) {
+        usersService.deleteUser(response, currentUser);
 
         return ResponseEntity.ok(new ApiResponse<>("회원탈퇴가 성공적으로 완료되었습니다.", HttpStatus.OK.value()));
     }

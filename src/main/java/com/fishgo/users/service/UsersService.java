@@ -1,10 +1,18 @@
 package com.fishgo.users.service;
 
+import com.fishgo.common.constants.UploadPaths;
+import com.fishgo.common.service.ImageService;
 import com.fishgo.common.util.JwtUtil;
 import com.fishgo.common.util.NicknameGenerator;
+import com.fishgo.posts.comments.dto.CommentStatsDto;
+import com.fishgo.posts.comments.repository.CommentRepository;
+import com.fishgo.posts.dto.PostStatsDto;
+import com.fishgo.posts.respository.PostsRepository;
+import com.fishgo.users.domain.Profile;
 import com.fishgo.users.domain.Users;
 import com.fishgo.users.dto.*;
 import com.fishgo.users.dto.mapper.UserMapper;
+import com.fishgo.users.repository.ProfileRepository;
 import com.fishgo.users.repository.UsersRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,8 +21,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.nio.file.FileSystemException;
 
 @Service
 @RequiredArgsConstructor
@@ -25,33 +35,50 @@ public class UsersService {
     private final UsersRepository usersRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
+    private final PostsRepository postsRepository;
+    private final CommentRepository commentRepository;
+    private final ImageService imageService;
+    private final ProfileRepository profileRepository;
 
+    /**
+     * 회원가입 처리 및 프로필 디렉토리 생성
+     * @param usersDto 회원가입 요청 객체
+     * @throws FileSystemException 프로필 디렉토리 생성 실패시 예외 던지기
+     */
     @Transactional
-    public void registerUser(SignupRequestDto usersDto) throws Exception{
+    public void registerUser(SignupRequestDto usersDto) throws FileSystemException {
         if(usersRepository.existsByEmail(usersDto.getEmail())){
             throw new IllegalArgumentException("이미 존재하는 아이디입니다.");
         }
 
+        // 초기 랜덤 닉네임 생성
         String randomName = NicknameGenerator.generateNickname();
-        boolean isNicknameUsed = usersRepository.existsByName(randomName);
+        boolean isNicknameUsed = usersRepository.existsByProfile_Name(randomName);
 
         while(isNicknameUsed){
             randomName = NicknameGenerator.generateNickname();
-            isNicknameUsed = usersRepository.existsByName(randomName);
+            isNicknameUsed = usersRepository.existsByProfile_Name(randomName);
         }
 
+        // 패스워드 암호화
         String encodedPassword = passwordEncoder.encode(usersDto.getPassword());
+
+        Profile profile = Profile.builder()
+                    .name(randomName)
+                    .build();
 
         Users user = Users.builder()
                 .email(usersDto.getEmail())
-                .name(randomName)
                 .password(encodedPassword)
                 .role("USER")
                 .build();
 
-        Users saveUser = usersRepository.save(user);
+        user.addProfile(profile);
 
-        createUserDir(saveUser.getEmail());
+        // DB 저장
+        Users saveUser = usersRepository.save(user);
+        // 프로필 디렉토리 생성
+        createUserDir(saveUser.getId());
 
     }
 
@@ -96,13 +123,10 @@ public class UsersService {
     }
 
     @Transactional
-    public void deleteUser(String refreshToken, HttpServletResponse response) throws Exception {
+    public void deleteUser(HttpServletResponse response, Users currentUser)  {
 
-        long userId = jwtUtil.extractUserId(refreshToken);
+        long userId = currentUser.getId();
         log.debug("deleteUser userId : {}", userId);
-        if(userId == 0){
-            throw new Exception("사용자 정보를 찾을 수 없습니다.");
-        }
 
         // 쿠키 만료시켜서 삭제
         Cookie cookie = new Cookie("refreshToken", null);
@@ -112,13 +136,16 @@ public class UsersService {
         cookie.setMaxAge(0); // 즉시 만료
         response.addCookie(cookie);
         usersRepository.deleteById(userId);
+        log.debug("deleteUser successful userId : {}", userId);
     }
 
-    private void createUserDir(String userName) {
-        String dir = System.getProperty("user.dir");
-        String path = dir + "/uploads/users/" + userName;
-        new File(path + "/profile").mkdirs();
-        new File(path + "/posts").mkdirs();
+    private void createUserDir(long userId) throws FileSystemException {
+        String userDirectory = UploadPaths.PROFILE.getPath() + userId + "/";
+        boolean wasMkdirSuccessful = new File(userDirectory).mkdirs();
+
+        if(!wasMkdirSuccessful){
+            throw new FileSystemException("유저 프로필 디렉토리 생성 실패");
+        }
     }
 
     public Users findByUserId(long userId){
@@ -131,23 +158,92 @@ public class UsersService {
                 .orElseThrow(() -> new IllegalArgumentException("유저 정보를 찾을 수 없습니다."));
     }
 
-    // 사용자의 게시글, 댓글 및 받은 좋아요 총 개수
-  /*  public UserOverviewDto getOverview(String userId) {
-        Users user = findByUserId(userId);
+    /**
+     * 사용자의 게시글, 댓글 및 받은 좋아요 총 개수
+     * @param currentUser 현재 로그인한 유저 정보 객체
+     * @return 유저 활동 간략 정보 객체
+     */
+    public UserStatsDto getUserStats(Users currentUser) {
+        PostStatsDto postStats = postsRepository.findPostStatsByUserId(currentUser.getId());
+        CommentStatsDto commentStats = commentRepository.findCommentStatsByUserId(currentUser.getId());
 
-        // PostsRepository의 단일 쿼리 메서드 호출
-        PostStatsDto postStats = postsRepository.findPostStatsByUserId(userId);
+        long postLikeCount = postStats.getTotalLikes();
+        long commentLikeCount = commentStats.getTotalLikes();
 
-        int commentCount = commentRepository.countCommentsByUserId(userId);
+        long totalLikeCount = postLikeCount + commentLikeCount;
 
-        return new UserOverviewDto(
-                user.getName(),
-                user.getProfileImg(),
-                (int) postStats.getPostCount(),
-                commentCount,
-                (int) postStats.getTotalLikes()
+        return new UserStatsDto(
+                currentUser.getProfile().getName(),
+                currentUser.getProfile().getProfileImg(),
+                postStats.getPostCount(),
+                commentStats.getCommentCount() ,
+                totalLikeCount
         );
-    }*/
+    }
 
+    /**
+     * 사용자 기본 프로필 정보 요청
+     * @param currentUser 현재 로그인한 유저 정보 객체
+     * @return 유저 프로필 응답 객체
+     */
+    public ProfileResponseDto getProfile(Users currentUser) {
+        Profile profile = currentUser.getProfile();
+
+        return new ProfileResponseDto(
+                getUserStats(currentUser),
+                currentUser.getEmail(),
+                profile.getBio()
+        );
+    }
+
+    /**
+     * 유저 자기소래 업데이트
+     * @param currentUser 현재 로그인한 유저 정보 객체
+     * @param bio (biography) 자기소개
+     */
+    public void updateBio(Users currentUser, String bio) {
+        if(bio.isBlank()){
+            bio = null;
+        }
+        currentUser.getProfile().setBio(bio);
+
+        usersRepository.save(currentUser);
+    }
+
+    /**
+     * 유저 프로필 이미지 업데이트
+     * @param currentUser 현재 로그인한 유저 정보 객체
+     * @param profileImg 변경할 프로필 이미지 파일
+     */
+    @Transactional
+    public void updateProfileImg(Users currentUser, MultipartFile profileImg) {
+
+        if(!imageService.isImageFile(profileImg)){
+            throw new IllegalArgumentException("이미지 형식이 아닙니다.");
+        }
+        String profileImgName = imageService.uploadProfileImage(profileImg, currentUser.getId());
+
+        currentUser.getProfile().setProfileImg(profileImgName);
+
+        usersRepository.save(currentUser);
+    }
+
+    /**
+     * 유저 이름 업데이트
+     * @param currentUser 현재 로그인한 유저 정보 객체
+     * @param profileName 변경 할 이름
+     */
+    public void updateProfileName(Users currentUser, String profileName) {
+        if (!profileName.matches("^[a-zA-Z0-9가-힣]{2,10}$")) {
+            throw new IllegalArgumentException("닉네임에는 공백이나 특수 문자를 포함할 수 없습니다.");
+        }
+        if(profileRepository.existsByName(profileName)){
+            throw new IllegalArgumentException("이미 존재하는 이름입니다.");
+        }
+
+        currentUser.getProfile().setName(profileName);
+
+        usersRepository.save(currentUser);
+    }
 
 }

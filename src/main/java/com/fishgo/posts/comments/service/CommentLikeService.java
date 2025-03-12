@@ -5,9 +5,7 @@ import com.fishgo.posts.comments.domain.CommentLike;
 import com.fishgo.posts.comments.repository.CommentLikeRepository;
 import com.fishgo.posts.comments.repository.CommentRepository;
 import com.fishgo.users.domain.Users;
-import com.fishgo.users.service.UsersService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,12 +16,9 @@ public class CommentLikeService {
 
     private final CommentLikeRepository commentLikeRepository;
     private final CommentRepository commentRepository;
-    private final UsersService usersService;
 
     // 좋아요 누르기
-    public void likeComment(Long commentId) {
-        // 현재 로그인 사용자
-        Users currentUser = (Users) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public void likeComment(Long commentId, Users currentUser) {
 
         // 이미 좋아요 눌렀는지 확인 (중복 방지)
         boolean alreadyLiked = commentLikeRepository.existsByCommentIdAndUserId(commentId, currentUser.getId());
@@ -48,8 +43,7 @@ public class CommentLikeService {
     }
 
     // 좋아요 취소
-    public void unlikeComment(Long commentId) {
-        Users currentUser = (Users) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public void unlikeComment(Long commentId, Users currentUser) {
 
         // 좋아요 이력 조회
         CommentLike commentLike = commentLikeRepository

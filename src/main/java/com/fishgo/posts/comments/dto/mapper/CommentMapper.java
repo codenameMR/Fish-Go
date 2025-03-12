@@ -24,6 +24,7 @@ public interface CommentMapper {
     // contents만 주입
     @Mapping(target = "contents", source = "dto.contents")
     @Mapping(target = "likeCount", ignore = true)
+    @Mapping(target = "likes", ignore = true)
     Comment toCreateEntity(CommentCreateRequestDto dto);
 
 
@@ -32,8 +33,8 @@ public interface CommentMapper {
      * 응답에 필요한 필드만 매핑합니다.
      */
     @Mapping(target = "id", source = "comment.id")
-    @Mapping(target = "name", source = "comment.user.name")
-    @Mapping(target = "profileImg", source = "comment.user.profileImg")
+    @Mapping(target = "name", source = "comment.user.profile.name")
+    @Mapping(target = "profileImg", source = "comment.user.profile.profileImg")
     @Mapping(target = "contents", source = "comment.contents")
     @Mapping(target = "createdAt", source = "comment.createdAt")
     @Mapping(target = "parentId", source = "comment.parent.id")

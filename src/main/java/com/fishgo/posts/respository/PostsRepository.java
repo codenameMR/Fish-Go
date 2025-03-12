@@ -20,7 +20,7 @@ public interface PostsRepository extends JpaRepository<Posts, Long> {
     @Query("SELECT NEW com.fishgo.posts.dto.PostStatsDto(" +
             "COUNT(p), COALESCE(SUM(p.likeCount), 0)) " +
             "FROM Posts p WHERE p.users.id = :userId")
-    PostStatsDto findPostStatsByUserId(@Param("userId") String userId);
+    PostStatsDto findPostStatsByUserId(@Param("userId") long userId);
 
 
 }
