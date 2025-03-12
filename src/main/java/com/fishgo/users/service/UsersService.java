@@ -187,12 +187,27 @@ public class UsersService {
      * @return 유저 프로필 응답 객체
      */
     public ProfileResponseDto getProfile(Users currentUser) {
-        Profile profile = currentUser.getProfile();
 
         return new ProfileResponseDto(
                 getUserStats(currentUser),
                 currentUser.getEmail(),
-                profile.getBio()
+                currentUser.getProfile().getBio()
+        );
+    }
+
+    /**
+     * 사용자 기본 프로필 정보 요청
+     * @param userName 조회 할 유저 이름
+     * @return 유저 프로필 응답 객체
+     */
+    public ProfileResponseDto getProfile(String userName) {
+        Users user = usersRepository.findByProfile_Name(userName)
+                .orElseThrow(() -> new IllegalArgumentException("유저 정보를 찾을 수 없습니다."));
+
+        return new ProfileResponseDto(
+                getUserStats(user),
+                null,
+                user.getProfile().getBio()
         );
     }
 
