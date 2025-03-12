@@ -35,11 +35,17 @@ public class UsersController {
         return ResponseEntity.ok(new ApiResponse<>("사용자 오버뷰 로드 성공.", HttpStatus.OK.value(), statsDto));
     }
 
-    @Operation(summary = "프로필", description = "사용자의 기본 프로필 정보를 반환합니다.")
+    @Operation(summary = "프로필", description = "userName이 없으면 현재 사용자, 있으면 해당 사용자의 프로필 정보를 불러옵니다.")
     @GetMapping("/profile")
-    public ResponseEntity<ApiResponse<ProfileResponseDto>> getProfile(@AuthenticationPrincipal Users user) {
+    public ResponseEntity<ApiResponse<ProfileResponseDto>> getProfile(@AuthenticationPrincipal Users user,
+                                                                      @RequestParam(value = "userName", required = false) String userName) {
+        ProfileResponseDto profileResponseDto;
 
-        ProfileResponseDto profileResponseDto = usersService.getProfile(user);
+        if (userName != null) {
+            profileResponseDto = usersService.getProfile(userName);
+        } else {
+            profileResponseDto = usersService.getProfile(user);
+        }
 
         return ResponseEntity.ok(new ApiResponse<>("사용자 프로필 로드 성공.", HttpStatus.OK.value(), profileResponseDto));
     }
