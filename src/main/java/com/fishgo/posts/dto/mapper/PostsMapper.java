@@ -1,7 +1,8 @@
 package com.fishgo.posts.dto.mapper;
 
+import com.fishgo.common.constants.UploadPaths;
 import com.fishgo.posts.domain.Hashtag;
-import com.fishgo.posts.domain.Image;
+import com.fishgo.posts.domain.PostImage;
 import com.fishgo.posts.domain.Posts;
 import com.fishgo.posts.dto.*;
 import org.mapstruct.*;
@@ -17,8 +18,8 @@ public interface PostsMapper {
 
     // Posts -> PostResponseDto 변환
     @Mapping(target = "id", source = "posts.id")
-    @Mapping(target = "userName", source = "posts.users.name")
-    @Mapping(target = "userProfileImg", source = "posts.users.profileImg")
+    @Mapping(target = "userName", source = "posts.users.profile.name")
+    @Mapping(target = "userProfileImg", source = "posts.users.profile.profileImg")
     @Mapping(target = "title", source = "posts.title")
     @Mapping(target = "contents", source = "posts.contents")
     @Mapping(target = "thumbnail", ignore = true)
@@ -32,19 +33,19 @@ public interface PostsMapper {
         dto.setThumbnail(
                 posts.getImages().stream()
                         .findFirst()
-                        .map(Image::getImgPath)
+                        .map(PostImage::getImageName)
                         .orElse(null)
         );
     }
 
 
-    @Mapping(target = "userName", source = "post.users.name")
+    @Mapping(target = "userName", source = "post.users.profile.name")
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "isModify", source = "isModify")
     @Mapping(target = "hashtag", source = "post.hashtag")  // Set<Hashtag>을 List<String>으로 매핑
     @Mapping(target = "title", source = "title")
     @Mapping(target = "contents", source = "contents")
-    @Mapping(target = "images", expression = "java(mapToImageDtoList(post.getImages()))")
+    @Mapping(target = "images", expression = "java(mapToImageDtoList(post.getImages(), post.getId()))")
     @Mapping(target = "likeCount", source = "likeCount")
     @Mapping(target = "viewCount", source = "viewCount")
     @Mapping(target = "location", source = "location")
@@ -69,6 +70,7 @@ public interface PostsMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "isModify", constant = "false")
+    @Mapping(target = "likes", ignore = true)
     Posts toEntity(PostsCreateRequestDto dto);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -87,6 +89,7 @@ public interface PostsMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "isModify", constant = "true")
     @Mapping(target = "hashtag", ignore = true)
+    @Mapping(target = "likes", ignore = true)
     void updateFromDto(PostsUpdateRequestDto dto, @MappingTarget Posts entity);
 
 
@@ -96,19 +99,19 @@ public interface PostsMapper {
     }
 
 
-    // List<String> -> Set<Hashtag>으로 변환하는 메서드
+   /* // List<String> -> Set<Hashtag>으로 변환하는 메서드
     default Set<Hashtag> mapToHashtagSet(List<String> hashtags) {
         if (hashtags == null) return new HashSet<>();
         return hashtags.stream()
                 .map(Hashtag::new)  // String을 Hashtag 객체로 변환
                 .collect(Collectors.toSet());
-    }
+    }*/
 
     // List<String> -> Set<Iamge>으로 변환하는 메서드
-    default Set<Image> mapToImageSet(List<String> images) {
+    default Set<PostImage> mapToImageSet(List<String> images) {
         if (images == null) return new HashSet<>();
         return images.stream()
-                .map(Image::new)  // String을 Image 객체로 변환
+                .map(PostImage::new)  // String을 Image 객체로 변환
                 .collect(Collectors.toSet());
     }
 
@@ -121,10 +124,12 @@ public interface PostsMapper {
     }
 
     // Set<Image> -> List<ImageDto>으로 변환하는 메서드
-    default List<ImageDto> mapToImageDtoList(Set<Image> images) {
-        if (images == null) return new ArrayList<>();
-        return images.stream()
-                .map(image -> new ImageDto(image.getId(), image.getImgPath()))
+    default List<ImageDto> mapToImageDtoList(Set<PostImage> postImages, long postId) {
+        if (postImages == null) return new ArrayList<>();
+        String postImagePath = UploadPaths.POST.getPath() + postId + "/";
+
+        return postImages.stream()
+                .map(postImage -> new ImageDto(postImage.getId(), postImagePath + postImage.getImageName()))
                 .collect(Collectors.toList());
     }
 

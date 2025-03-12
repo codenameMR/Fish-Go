@@ -9,7 +9,9 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
@@ -52,9 +54,14 @@ public class Comment {
     @JoinColumn(name = "parent_id")
     private Comment parent;
 
-
+    // 대댓글 리스트
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
-    private final List<Comment> replies = new ArrayList<>(); // 대댓글 리스트
+    private final List<Comment> replies = new ArrayList<>();
+
+    // 좋아요 리스트
+    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<CommentLike> likes = new HashSet<>();
 
     @PrePersist
     public void prePersist() {

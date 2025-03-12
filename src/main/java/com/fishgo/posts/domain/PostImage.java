@@ -4,27 +4,26 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "images")
+@Table(name = "post_image")
 @Getter
 @Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class Image {
+public class PostImage {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 실제 파일 경로나 URL 을 저장
-    @Column(name = "img_path", length = 255, nullable = false)
-    private String imgPath;
+    @Column(name = "image_name", nullable = false)
+    private String imageName;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id")
     private Posts post;
 
-    public Image(String imgPath) {
-        this.imgPath = imgPath;
+    public PostImage(String imageName) {
+        this.imageName = imageName;
     }
 
 }

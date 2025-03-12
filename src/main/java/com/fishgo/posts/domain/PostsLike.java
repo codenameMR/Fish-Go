@@ -21,8 +21,8 @@ public class PostsLike {
 
     // 어느 게시글에 대한 좋아요인지
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "posts_id", nullable = false)
-    private Posts posts;
+    @JoinColumn(name = "post_id", nullable = false)
+    private Posts post;
 
     // 누가 눌렀는지
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

@@ -20,9 +20,6 @@ public class Users {
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(nullable = false)
-    private String name;
-
     @JsonIgnore
     @Column(nullable = false)
     private String password;
@@ -33,9 +30,11 @@ public class Users {
     @Column(nullable = false)
     private String role;
 
-    @Column(name = "profile_img")
-    private String profileImg;
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Profile profile;
 
-
-
+    public void addProfile(Profile profile){
+        this.profile = profile;
+        profile.setUser(this);
+    }
 }

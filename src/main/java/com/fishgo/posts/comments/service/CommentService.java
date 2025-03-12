@@ -12,7 +12,7 @@ import com.fishgo.posts.service.PostsService;
 import com.fishgo.users.domain.Users;
 import com.fishgo.users.service.UsersService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,15 +30,12 @@ public class CommentService {
     private final CommentLikeRepository commentLikeRepository;
 
     // 최적화된 댓글 조회
-    public List<CommentResponseDto> getCommentsByPostId(Long postId) throws Exception{
+    public List<CommentResponseDto> getCommentsByPostId(Long postId, @AuthenticationPrincipal Users currentUser) {
 
         // 1) 댓글 목록 불러오기
         List<Comment> comments = commentRepository.findByPostIdWithReplies(postId);
         // 2) 매퍼로 DTO 변환
         List<CommentResponseDto> responses = commentMapper.toResponseList(comments);
-
-        // 3) 현재 로그인 사용자
-        Users currentUser = (Users) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         // 4) 댓글 좋아요 여부 재귀함수
         fillLikeStatusRecursively(responses, currentUser.getId());
@@ -48,11 +45,9 @@ public class CommentService {
     }
 
     // 댓글 작성
-    public CommentResponseDto saveComment(CommentCreateRequestDto dto) {
+    public CommentResponseDto saveComment(CommentCreateRequestDto dto, @AuthenticationPrincipal Users currentUser) {
 
         Comment comment = commentMapper.toCreateEntity(dto);
-        // 현재 로그인 사용자 정보 가져오기
-        Users currentUser = (Users) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         Users user = usersService.findByUserId(currentUser.getId());
         comment.setUser(user);
@@ -71,9 +66,7 @@ public class CommentService {
         return commentMapper.toResponse(saved);
     }
 
-    public CommentResponseDto updateComment(CommentUpdateRequestDto dto) {
-        // 현재 로그인 사용자 정보 가져오기
-        Users user = (Users) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public CommentResponseDto updateComment(CommentUpdateRequestDto dto, @AuthenticationPrincipal Users user) {
         // 1) DB에서 댓글 엔티티 조회
         Comment comment = commentRepository.findById(user.getId())
                 .orElseThrow(() -> new IllegalArgumentException("해당 댓글이 존재하지 않습니다."));
@@ -91,8 +84,7 @@ public class CommentService {
     }
 
     // 댓글 삭제
-    public void deleteComment(Long commentId) {
-        Users user = (Users) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public void deleteComment(Long commentId, @AuthenticationPrincipal Users user) {
 
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 댓글이 존재 하지 않습니다."));

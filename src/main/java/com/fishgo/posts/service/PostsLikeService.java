@@ -5,9 +5,8 @@ import com.fishgo.posts.domain.PostsLike;
 import com.fishgo.posts.respository.PostsLikeRepository;
 import com.fishgo.posts.respository.PostsRepository;
 import com.fishgo.users.domain.Users;
-import com.fishgo.users.service.UsersService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,15 +17,12 @@ public class PostsLikeService {
 
     private final PostsLikeRepository postsLikeRepository;
     private final PostsRepository postsRepository;
-    private final UsersService usersService;
 
     // 좋아요 누르기
-    public void likePosts(Long PostsId) {
-        // 현재 로그인 사용자
-        Users currentUser = (Users) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public void likePosts(Long PostsId, @AuthenticationPrincipal Users currentUser) {
 
         // 이미 좋아요 눌렀는지 확인 (중복 방지)
-        boolean alreadyLiked = postsLikeRepository.existsByPostsIdAndUserId(PostsId, currentUser.getId());
+        boolean alreadyLiked = postsLikeRepository.existsByPostIdAndUserId(PostsId, currentUser.getId());
         if (alreadyLiked) {
             throw new IllegalStateException("이미 좋아요를 누른 게시글입니다.");
         }
@@ -37,7 +33,7 @@ public class PostsLikeService {
 
         // 좋아요 이력 생성
         PostsLike postsLike = PostsLike.builder()
-                .posts(posts)
+                .post(posts)
                 .user(currentUser)
                 .build();
 
@@ -48,19 +44,18 @@ public class PostsLikeService {
     }
 
     // 좋아요 취소
-    public void unlikePosts(Long PostsId) {
-        Users currentUser = (Users) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public void unlikePosts(Long PostsId, @AuthenticationPrincipal Users currentUser) {
 
         // 좋아요 이력 조회
         PostsLike PostsLike = postsLikeRepository
-                .findByPostsIdAndUserId(PostsId, currentUser.getId())
+                .findByPostIdAndUserId(PostsId, currentUser.getId())
                 .orElseThrow(() -> new IllegalStateException("좋아요를 누른 기록이 없습니다."));
 
         // DB에서 제거
         postsLikeRepository.delete(PostsLike);
 
         // (선택) likeCount 감소
-        Posts Posts = PostsLike.getPosts();
+        Posts Posts = PostsLike.getPost();
         Posts.setLikeCount(Posts.getLikeCount() - 1);
     }
 }
