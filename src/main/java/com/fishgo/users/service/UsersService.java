@@ -1,5 +1,6 @@
 package com.fishgo.users.service;
 
+import com.fishgo.common.constants.JwtProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fishgo.common.constants.UploadPaths;
 import com.fishgo.common.service.ImageService;
@@ -20,6 +21,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +29,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.nio.file.FileSystemException;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +44,8 @@ public class UsersService {
     private final CommentRepository commentRepository;
     private final ImageService imageService;
     private final ProfileRepository profileRepository;
+    private final RedisTemplate<String, String> redisTemplate;
+
     private final EmailVerService emailVerificationService;
     private final EmailService emailService;
 
@@ -129,7 +134,7 @@ public class UsersService {
         refreshTokenCookie.setHttpOnly(true);
         refreshTokenCookie.setSecure(true); // HTTPS 사용 시
         refreshTokenCookie.setPath("/");
-        refreshTokenCookie.setMaxAge((int) (jwtUtil.REFRESH_TOKEN_EXPIRATION / 1000));
+        refreshTokenCookie.setMaxAge(JwtProperties.REFRESH_TOKEN_EXPIRATION.getIntValue() / 1000);
         response.addCookie(refreshTokenCookie);
 
         // 사용자 및 Access Token Response 데이터 구성
@@ -141,7 +146,7 @@ public class UsersService {
         return responseData;
     }
 
-    public void logoutUser(HttpServletResponse response) {
+    public void logoutUser(HttpServletResponse response, String refreshToken, String accessToken) {
         // 쿠키 만료시켜서 삭제
         Cookie cookie = new Cookie("refreshToken", null);
         cookie.setHttpOnly(true);
@@ -149,6 +154,18 @@ public class UsersService {
         cookie.setPath("/");
         cookie.setMaxAge(0); // 즉시 만료
         response.addCookie(cookie);
+
+        // AccessToken 블랙리스트 등록
+        redisTemplate.opsForValue().set(JwtProperties.BLACKLIST_PREFIX_ACCESS.getValue() + accessToken,
+                "true",
+                JwtProperties.ACCESS_TOKEN_EXPIRATION.getIntValue(),
+                TimeUnit.SECONDS);
+
+        // RefreshToken 블랙리스트 등록
+        redisTemplate.opsForValue().set(JwtProperties.BLACKLIST_PREFIX_REFRESH.getValue() + refreshToken,
+                "true",
+                JwtProperties.REFRESH_TOKEN_EXPIRATION.getIntValue(),
+                TimeUnit.SECONDS);
     }
 
     @Transactional
@@ -166,6 +183,28 @@ public class UsersService {
         response.addCookie(cookie);
         usersRepository.deleteById(userId);
         log.debug("deleteUser successful userId : {}", userId);
+    }
+
+    public String refreshToken(String refreshToken) {
+        if(isBlacklisted(refreshToken)) {
+           return null;
+        }
+
+        long userId = jwtUtil.extractUserId(refreshToken);
+        Users user = findByUserId(userId);
+        JwtRequestDto jwtRequestDto = userMapper.toJwtRequestDto(user);
+
+        if (jwtUtil.isTokenValid(refreshToken, jwtRequestDto)) {
+            return jwtUtil.generateAccessToken(jwtRequestDto);
+        } else {
+            return null;
+        }
+
+    }
+
+    private boolean isBlacklisted(String token) {
+        // Redis에 "blacklist:<토큰>" 존재 여부 확인
+        return Boolean.TRUE.equals(redisTemplate.hasKey(JwtProperties.BLACKLIST_PREFIX_ACCESS.getValue() + token));
     }
 
     private void createUserDir(long userId) throws FileSystemException {

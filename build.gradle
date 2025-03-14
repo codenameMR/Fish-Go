@@ -37,7 +37,8 @@ dependencies {
 
 	// Lombok
 	implementation "org.projectlombok:lombok:1.18.30"
-	annotationProcessor "org.projectlombok:lombok:1.18.30"
+	testImplementation 'io.projectreactor:reactor-test'
+    annotationProcessor "org.projectlombok:lombok:1.18.30"
 
 	// Lombok + MapStruct binding
 	implementation 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
@@ -46,7 +47,8 @@ dependencies {
 	// Mapstruct
 	implementation 'org.mapstruct:mapstruct:1.6.3'
 	annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
-
+	// Redis
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly "io.jsonwebtoken:jjwt-impl:0.12.5"
