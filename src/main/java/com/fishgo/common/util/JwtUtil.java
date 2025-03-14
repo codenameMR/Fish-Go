@@ -1,5 +1,6 @@
 package com.fishgo.common.util;
 
+import com.fishgo.common.constants.JwtProperties;
 import com.fishgo.users.dto.JwtRequestDto;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -18,16 +19,14 @@ public class JwtUtil {
     //512 bit
     private final String originalKey = "qYtjTJEL77ty3e2yCVTDUZ5Bm13czUHO3JkovgseW2Vnzm+l3iBqv2avHUJZt6/8BDPEETy7rk6kplS3zlsTuA==";
     private final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(originalKey.getBytes()); // 안전한 키 생성
-    public final long ACCESS_TOKEN_EXPIRATION = 1000 * 60 * 10; // 10분
-    public final long REFRESH_TOKEN_EXPIRATION = 1000 * 60 * 60 * 24 * 7; // 7일
 
     // Access Token 생성
     public String generateAccessToken(JwtRequestDto dto) {
-        return buildToken(dto, ACCESS_TOKEN_EXPIRATION);
+        return buildToken(dto, JwtProperties.ACCESS_TOKEN_EXPIRATION.getIntValue());
     }
 
     // Refresh Token 생성
-    public String generateRefreshToken(JwtRequestDto dto) { return buildToken(dto, REFRESH_TOKEN_EXPIRATION); }
+    public String generateRefreshToken(JwtRequestDto dto) { return buildToken(dto, JwtProperties.REFRESH_TOKEN_EXPIRATION.getIntValue()); }
 
     private String buildToken(JwtRequestDto dto, long expiration) {
         return Jwts.builder()

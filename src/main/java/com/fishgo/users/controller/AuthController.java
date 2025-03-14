@@ -1,11 +1,10 @@
 package com.fishgo.users.controller;
 
 import com.fishgo.common.response.ApiResponse;
-import com.fishgo.common.response.AuthResponse;
-import com.fishgo.common.util.JwtUtil;
 import com.fishgo.users.domain.Users;
-import com.fishgo.users.dto.*;
-import com.fishgo.users.dto.mapper.UserMapper;
+import com.fishgo.users.dto.LoginRequestDto;
+import com.fishgo.users.dto.LoginResponseDto;
+import com.fishgo.users.dto.SignupRequestDto;
 import com.fishgo.users.service.UsersService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,9 +29,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AuthController {
 
-    private final JwtUtil jwtUtil;
     private final UsersService usersService;
-    private final UserMapper userMapper;
 
     @Operation(summary = "회원가입", description = "사용자 정보를 기반으로 회원가입을 처리합니다.")
     @PostMapping("/register")
@@ -68,8 +65,13 @@ public class AuthController {
 
     @Operation(summary = "로그아웃", description = "FE에서 AccessToken, BE에서는 RefreshToken을 삭제합니다.")
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<String>> logout(HttpServletResponse response) {
-        usersService.logoutUser(response);
+    public ResponseEntity<ApiResponse<String>> logout(HttpServletResponse response,
+                                                      @CookieValue(name = "refreshToken") String refreshToken,
+                                                      @RequestHeader(name = "Authorization") String accessToken) {
+        if(accessToken != null && accessToken.startsWith("Bearer ")) {
+            accessToken = accessToken.substring(7);
+        }
+        usersService.logoutUser(response, refreshToken, accessToken);
 
         return ResponseEntity.ok(new ApiResponse<>("로그아웃 성공 하였습니다.", HttpStatus.OK.value()));
     }
@@ -83,27 +85,14 @@ public class AuthController {
         return ResponseEntity.ok(new ApiResponse<>("회원탈퇴가 성공적으로 완료되었습니다.", HttpStatus.OK.value()));
     }
 
-    @Operation(summary = "리프레시 토큰 갱신", description = "RefreshToken을 통해 새로운 AccessToken 발급.")
-    @PostMapping("/refreshToken")
-    public ResponseEntity<?> refreshToken(@CookieValue(name = "refreshToken") String refreshToken) {
-        if (refreshToken == null) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>("RefreshToken이 없습니다.", HttpStatus.BAD_REQUEST.value()));
-        }
+    @Operation(summary = "액세스 토큰 갱신", description = "RefreshToken을 통해 새로운 AccessToken 발급.")
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<String>> refreshToken(HttpServletResponse response,
+                                                            @CookieValue(name = "refreshToken") String refreshToken) {
+        String newAccessToken = usersService.refreshToken(refreshToken);
+        response.addHeader("Authorization", "Bearer " + newAccessToken);
 
-        try {
-            long userId = jwtUtil.extractUserId(refreshToken);
-            Users user = usersService.findByUserId(userId);
-            JwtRequestDto jwtRequestDto = userMapper.toJwtRequestDto(user);
+        return ResponseEntity.ok(new ApiResponse<>("AccessToken 갱신 성공", HttpStatus.OK.value(), newAccessToken));
 
-            if (jwtUtil.isTokenValid(refreshToken, jwtRequestDto)) {
-                String newAccessToken = jwtUtil.generateAccessToken(jwtRequestDto);
-                return ResponseEntity.ok(new AuthResponse(newAccessToken));
-            } else {
-                return ResponseEntity.badRequest().body(new ApiResponse<>("유효하지 않은 refreshToken", HttpStatus.BAD_REQUEST.value()));
-            }
-        } catch (Exception e) {
-            log.error("토큰 재발급 중 예외 발생 : {}", e.getMessage());
-            return ResponseEntity.badRequest().body(new ApiResponse<>("토큰 갱신 실패", HttpStatus.BAD_REQUEST.value()));
-        }
     }
 }
