@@ -11,12 +11,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Tag(name = "댓글 관련 API", description = "댓글, 대댓글 관련 CRUD를 수행합니다.")
 @RestController
@@ -30,15 +32,14 @@ public class CommentController {
 
     @Operation(summary = "댓글 조회", description = "게시글 ID로 해당 게시물의 댓글을 조회합니다.")
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CommentResponseDto>>> getComments(@RequestParam Long postId, @AuthenticationPrincipal Users currentUser) {
-        List<CommentResponseDto> commentsDtoList;
+    public ResponseEntity<ApiResponse<Page<CommentResponseDto>>> getComments(@RequestParam Long postId,
+                                                                             @RequestParam(value = "page", defaultValue = "0") int page,
+                                                                             @RequestParam(value = "size", defaultValue = "20") int size,
+                                                                             @AuthenticationPrincipal Users currentUser) {
+        // 페이지 번호(page), 조회 개수(size)로 PageRequest 생성
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
 
-        try {
-            commentsDtoList = commentService.getCommentsByPostId(postId, currentUser);
-        } catch (Exception e) {
-            log.error("댓글 조회 실패 : {}", "postId-" + postId + " " + e.getMessage());
-            return ResponseEntity.badRequest().body(new ApiResponse<>("댓글 조회 실패", HttpStatus.BAD_REQUEST.value()));
-        }
+        Page<CommentResponseDto> commentsDtoList = commentService.getCommentsByPostId(postId, pageable, currentUser);
 
         return ResponseEntity.ok(new ApiResponse<>("댓글 조회 성공", HttpStatus.OK.value(), commentsDtoList));
     }
@@ -59,14 +60,8 @@ public class CommentController {
                                                                          @AuthenticationPrincipal Users currentUser) {
 
         commentDto.setCommentId(commentId);
-        CommentResponseDto updatedComment;
-        try {
-            updatedComment = commentService.updateComment(commentDto, currentUser);
-        } catch (Exception e) {
-            log.error("댓글 수정 실패: {}", e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(new ApiResponse<>("댓글 수정 실패", HttpStatus.BAD_REQUEST.value()));
-        }
+        CommentResponseDto updatedComment = commentService.updateComment(commentDto, currentUser);
+
         return ResponseEntity.ok(new ApiResponse<>("댓글 수정 성공", HttpStatus.OK.value(), updatedComment));
     }
 

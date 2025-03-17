@@ -12,7 +12,8 @@ import com.fishgo.posts.service.PostsService;
 import com.fishgo.users.domain.Users;
 import com.fishgo.users.service.UsersService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,23 +30,56 @@ public class CommentService {
     private final CommentMapper commentMapper;
     private final CommentLikeRepository commentLikeRepository;
 
-    // 최적화된 댓글 조회
-    public List<CommentResponseDto> getCommentsByPostId(Long postId, @AuthenticationPrincipal Users currentUser) {
+    /**
+     *  댓글 조회
+     * @param postId 게시글 아이디
+     * @param pageable 페이지네이션 객체
+     * @param currentUser 현재 접속 중인 유저
+     * @return 페이지네이션 된 댓글 응답 객체
+     */
+    @Transactional
+    public Page<CommentResponseDto> getCommentsByPostId(Long postId, Pageable pageable, Users currentUser) {
 
-        // 1) 댓글 목록 불러오기
-        List<Comment> comments = commentRepository.findByPostIdWithReplies(postId);
-        // 2) 매퍼로 DTO 변환
-        List<CommentResponseDto> responses = commentMapper.toResponseList(comments);
+        // 1) 부모만 우선 페이징 조회
+        Page<Comment> commentPage = commentRepository.findByPostIdWithoutReplies(postId, pageable);
+        // 2) 페이징된 부모 목록 추출
+        List<Comment> parentComments = commentPage.getContent();
+        if (parentComments.isEmpty()) {
+            // 부모가 없으면 굳이 자식 로딩 쿼리 불필요
+            return commentPage.map(commentMapper::toResponse);
+        }
 
-        // 4) 댓글 좋아요 여부 재귀함수
-        fillLikeStatusRecursively(responses, currentUser.getId());
+        // 3) 부모 IDs 추출
+        List<Long> commentIds = parentComments
+                .stream()
+                .map(Comment::getId)
+                .toList();
+
+        // 4) 자식까지 fetch join
+        // DB에서 조회된 엔티티의 식별자(Primary Key)가 같으면, 같은 레코드를 가리키는 엔티티이므로
+        // JPA 영속성 컨텍스트 입장에서는 동일한 엔티티 객체로 인식되기 때문에
+        // 이 때 commentPage 객체가 자식을 가진 상태로 업데이트 됨.
+        commentRepository.findCommentsWithReplies(commentIds);
+
+        // 5) 매퍼로 DTO 변환
+        Page<CommentResponseDto> responses = commentPage.map(commentMapper::toResponse);
+
+        // 6) 댓글 좋아요 여부 재귀함수
+        if(currentUser != null) {
+            fillLikeStatusRecursively(responses, currentUser.getId());
+        }
 
         return responses;
 
     }
 
-    // 댓글 작성
-    public CommentResponseDto saveComment(CommentCreateRequestDto dto, @AuthenticationPrincipal Users currentUser) {
+    /**
+     * 댓글 작성
+     * @param dto 댓글 작성 요청 객체
+     * @param currentUser 현재 접속 중인 유저 객체
+     * @return 댓글 응답 객체
+     */
+    public CommentResponseDto saveComment(CommentCreateRequestDto dto, Users currentUser) {
 
         Comment comment = commentMapper.toCreateEntity(dto);
 
@@ -66,13 +100,19 @@ public class CommentService {
         return commentMapper.toResponse(saved);
     }
 
-    public CommentResponseDto updateComment(CommentUpdateRequestDto dto, @AuthenticationPrincipal Users user) {
+    /**
+     * 댓글 수정
+     * @param dto 댓글 수정 요청 객체
+     * @param currentUser 현재 접속 중인 유저 객체
+     * @return 댓글 응답 객체
+     */
+    public CommentResponseDto updateComment(CommentUpdateRequestDto dto, Users currentUser) {
         // 1) DB에서 댓글 엔티티 조회
-        Comment comment = commentRepository.findById(user.getId())
+        Comment comment = commentRepository.findById(dto.getCommentId())
                 .orElseThrow(() -> new IllegalArgumentException("해당 댓글이 존재하지 않습니다."));
 
         // 2) 작성자(userId)와 현재 사용자(userId)가 일치하는지 확인
-        if (!comment.getUser().getId().equals(user.getId())) {
+        if (!comment.getUser().getId().equals(currentUser.getId())) {
             throw new SecurityException("본인이 작성한 댓글만 수정할 수 있습니다.");
         }
 
@@ -83,13 +123,17 @@ public class CommentService {
         return commentMapper.toResponse(comment);
     }
 
-    // 댓글 삭제
-    public void deleteComment(Long commentId, @AuthenticationPrincipal Users user) {
+    /**
+     * 댓글 삭제
+     * @param commentId 댓글 아이디
+     * @param currentUser 현재 접속중인 유저 객체
+     */
+    public void deleteComment(Long commentId, Users currentUser) {
 
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 댓글이 존재 하지 않습니다."));
 
-        if (!comment.getUser().getId().equals(user.getId())) {
+        if (!comment.getUser().getId().equals(currentUser.getId())) {
             throw new SecurityException("본인이 작성한 댓글만 수정할 수 있습니다.");
         }
         // 연결된 좋아요(CommentLike) 정보 먼저 삭제
@@ -98,9 +142,13 @@ public class CommentService {
         commentRepository.deleteById(commentId);
     }
 
-    // 댓글 좋아요 여부 판별
-    private void fillLikeStatusRecursively(List<CommentResponseDto> commentResponsDtos, Long userId) {
-        for (CommentResponseDto resp : commentResponsDtos) {
+    /**
+     * 댓글 좋아요 여부 판별
+     * @param list 조회가 완료된 페이지네이션 댓글 응답 객체
+     * @param userId 유저 아이디
+     */
+    private void fillLikeStatusRecursively(Page<CommentResponseDto> list, Long userId) {
+        for (CommentResponseDto resp : list) {
             boolean liked = commentLikeRepository.existsByCommentIdAndUserId(resp.getId(), userId);
             resp.setLiked(liked);
 
@@ -110,4 +158,18 @@ public class CommentService {
             }
         }
     }
+
+    // 댓글 좋아요 여부 판별 오버로딩
+    private void fillLikeStatusRecursively(List<CommentResponseDto> list, Long userId) {
+        for (CommentResponseDto resp : list) {
+            boolean liked = commentLikeRepository.existsByCommentIdAndUserId(resp.getId(), userId);
+            resp.setLiked(liked);
+
+            // 자식의 자식 댓글이 또 List이면 동일하게 재귀
+            if (resp.getReplies() != null && !resp.getReplies().isEmpty()) {
+                fillLikeStatusRecursively(resp.getReplies(), userId);
+            }
+        }
+    }
+
 }
