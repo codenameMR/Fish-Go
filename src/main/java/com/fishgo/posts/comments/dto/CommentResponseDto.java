@@ -33,7 +33,7 @@ public class CommentResponseDto {
     private boolean isLiked;
 
     @Schema(description = "프로필 이미지")
-    private Long profileImg;
+    private String profileImg;
 
     @Schema(description = "대댓글 필드")
     private List<CommentResponseDto> replies;
