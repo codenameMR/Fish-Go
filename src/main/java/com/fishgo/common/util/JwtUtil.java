@@ -5,7 +5,9 @@ import com.fishgo.users.dto.JwtRequestDto;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -14,11 +16,15 @@ import java.util.function.Function;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class JwtUtil {
+
+    private final RedisTemplate<String, String> redisTemplate;
 
     //512 bit
     private final String originalKey = "qYtjTJEL77ty3e2yCVTDUZ5Bm13czUHO3JkovgseW2Vnzm+l3iBqv2avHUJZt6/8BDPEETy7rk6kplS3zlsTuA==";
     private final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(originalKey.getBytes()); // 안전한 키 생성
+
 
     // Access Token 생성
     public String generateAccessToken(JwtRequestDto dto) {
@@ -68,5 +74,15 @@ public class JwtUtil {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+    }
+
+    public boolean isAccessBlacklisted(String token) {
+        // Redis에 "blacklist:access:<토큰>" 존재 여부 확인
+        return Boolean.TRUE.equals(redisTemplate.hasKey(JwtProperties.BLACKLIST_PREFIX_ACCESS.getValue() + token));
+    }
+
+    public boolean isRefreshBlacklisted(String token) {
+        // Redis에 "blacklist:refresh<토큰>" 존재 여부 확인
+        return Boolean.TRUE.equals(redisTemplate.hasKey(JwtProperties.BLACKLIST_PREFIX_REFRESH.getValue() + token));
     }
 }

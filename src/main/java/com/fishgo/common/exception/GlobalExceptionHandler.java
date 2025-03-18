@@ -19,6 +19,14 @@ import java.nio.file.FileSystemException;
 @Hidden
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(CustomException.class)
+    public ResponseEntity<ApiResponse<String>> handleCustomException(CustomException ex, HttpServletRequest request) {
+        log.error("CustomException at {} : {}", request.getRequestURI(), ex.getMessage(), ex);
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new ApiResponse<>(ex.getMessage(), ex.getCode()));
+    }
+
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiResponse<String>> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex,
                                                                                             HttpServletRequest request) {
