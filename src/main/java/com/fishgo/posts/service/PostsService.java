@@ -2,6 +2,7 @@ package com.fishgo.posts.service;
 
 import com.fishgo.common.constants.UploadPaths;
 import com.fishgo.common.service.ImageService;
+import com.fishgo.common.service.RedisService;
 import com.fishgo.posts.domain.Hashtag;
 import com.fishgo.posts.domain.PostImage;
 import com.fishgo.posts.domain.Posts;
@@ -25,6 +26,7 @@ import java.nio.file.FileSystemException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +38,7 @@ public class PostsService {
     private final PostsMapper postsMapper;
     private final PostsLikeRepository postsLikeRepository;
     private final ImageService imageService;
+    private final RedisService redisService;
 
     /**
      * 게시글 목록
@@ -193,11 +196,26 @@ public class PostsService {
     /**
      * 게시글 상세보기
      * @param postId 게시글 아이디
+     * @param redisUserKey 현재 접속한 유저 아이디 혹은 아이피
      * @return PostDTO 객체
      */
-    public PostsDto getPostDetail(Long postId) {
+    public PostsDto getPostDetail(Long postId, String redisUserKey) {
         Posts post = postsRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시물이 존재하지 않습니다."));
+
+        // Redis 조회 키 생성
+        String redisKey = "postView:" + postId + ":" + redisUserKey;
+
+        // 3. Redis에 해당 키가 존재하는 지 확인
+        if (!redisService.exists(redisKey)) {
+            // 키가 없으면 -> 조회수 증가 로직
+            post.increaseViewCount();
+            postsRepository.save(post);
+
+            // Redis에 저장 + 만료 시간(4시간) 설정
+            redisService.setWithExpire(redisKey, true, 4, TimeUnit.HOURS);
+        }
+
         // 게시물을 DTO로 변환하여 반환
         return postsMapper.toDto(post);
     }

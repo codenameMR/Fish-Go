@@ -110,4 +110,7 @@ public class Posts {
         hashtag.getPosts().remove(this);
     }
 
+    public void increaseViewCount() {
+        this.viewCount++;
+    }
 }

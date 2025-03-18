@@ -1,5 +1,6 @@
 package com.fishgo.posts.dto;
 
+import com.fishgo.common.util.ImagePathHelper;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,4 +30,11 @@ public class PostListResponseDto {
 
     private LocalDateTime createdAt;
 
+    public void setUserProfileImg(String profileImg) {
+        this.userProfileImg = ImagePathHelper.buildProfileImagePath(profileImg);
+    }
+
+    public void setThumbnail(String thumbnail) {
+        this.thumbnail = ImagePathHelper.buildPostImagePath(thumbnail, this.id);
+    }
 }

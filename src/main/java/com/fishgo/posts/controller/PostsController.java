@@ -11,6 +11,7 @@ import com.fishgo.posts.service.PostsService;
 import com.fishgo.users.domain.Users;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -104,8 +105,11 @@ public class PostsController {
 
     @Operation(summary = "게시물 상세 조회", description = "게시물 ID로 상세 정보를 조회합니다.")
     @GetMapping("/{postId}")
-    public ResponseEntity<ApiResponse<PostsDto>> getPostDetail(@PathVariable Long postId) {
-        PostsDto postDetail = postsService.getPostDetail(postId);
+    public ResponseEntity<ApiResponse<PostsDto>> getPostDetail(HttpServletRequest request, @PathVariable Long postId, @AuthenticationPrincipal Users currentUser) {
+        String redisUserKey = currentUser != null ?
+                String.valueOf(currentUser.getId()) : request.getRemoteAddr();
+
+        PostsDto postDetail = postsService.getPostDetail(postId, redisUserKey);
         ApiResponse<PostsDto> response = new ApiResponse<>(
                 "게시물 조회 성공",
                 HttpStatus.OK.value(),
