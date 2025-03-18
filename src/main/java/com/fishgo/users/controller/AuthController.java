@@ -3,8 +3,8 @@ package com.fishgo.users.controller;
 import com.fishgo.common.response.ApiResponse;
 import com.fishgo.users.domain.Users;
 import com.fishgo.users.dto.LoginRequestDto;
-import com.fishgo.users.dto.LoginResponseDto;
 import com.fishgo.users.dto.SignupRequestDto;
+import com.fishgo.users.dto.UserResponseDto;
 import com.fishgo.users.service.UsersService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -53,13 +53,12 @@ public class AuthController {
 
     @Operation(summary = "로그인", description = "아이디와 비밀번호로 로그인을 수행합니다.")
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<LoginResponseDto>> login(@RequestBody LoginRequestDto usersDto, HttpServletResponse response){
-        LoginResponseDto loginResponseDto;
+    public ResponseEntity<ApiResponse<UserResponseDto>> login(@RequestBody LoginRequestDto usersDto, HttpServletResponse response){
 
         // Service에서 반환된 사용자와 Access Token 정보 사용
-        loginResponseDto = usersService.loginUser(usersDto, response);
+        UserResponseDto userResponseDto = usersService.loginUser(usersDto, response);
 
-        ApiResponse<LoginResponseDto> apiResponse = new ApiResponse<>("로그인 성공 하였습니다.", HttpStatus.OK.value(), loginResponseDto);
+        ApiResponse<UserResponseDto> apiResponse = new ApiResponse<>("로그인 성공 하였습니다.", HttpStatus.OK.value(), userResponseDto);
         return ResponseEntity.ok(apiResponse);
     }
 
@@ -67,10 +66,7 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(HttpServletResponse response,
                                                       @CookieValue(name = "refreshToken") String refreshToken,
-                                                      @RequestHeader(name = "Authorization") String accessToken) {
-        if(accessToken != null && accessToken.startsWith("Bearer ")) {
-            accessToken = accessToken.substring(7);
-        }
+                                                      @CookieValue(name = "accessToken") String accessToken) {
         usersService.logoutUser(response, refreshToken, accessToken);
 
         return ResponseEntity.ok(new ApiResponse<>("로그아웃 성공 하였습니다.", HttpStatus.OK.value()));
@@ -89,10 +85,9 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<String>> refreshToken(HttpServletResponse response,
                                                             @CookieValue(name = "refreshToken") String refreshToken) {
-        String newAccessToken = usersService.refreshToken(refreshToken);
-        response.addHeader("Authorization", "Bearer " + newAccessToken);
+        usersService.refreshToken(response, refreshToken);
 
-        return ResponseEntity.ok(new ApiResponse<>("AccessToken 갱신 성공", HttpStatus.OK.value(), newAccessToken));
+        return ResponseEntity.ok(new ApiResponse<>("AccessToken 갱신 성공", HttpStatus.OK.value()));
 
     }
 }

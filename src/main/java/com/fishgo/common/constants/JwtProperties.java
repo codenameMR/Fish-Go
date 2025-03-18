@@ -4,7 +4,8 @@ import lombok.Getter;
 
 @Getter
 public enum JwtProperties {
-    ACCESS_TOKEN_EXPIRATION(1000 * 60 * 15),  // 15분
+    //ACCESS_TOKEN_EXPIRATION(1000 * 60 * 10),  // 10분
+    ACCESS_TOKEN_EXPIRATION(1000 * 60 * 60),  // 임의 1시간
     REFRESH_TOKEN_EXPIRATION(1000 * 60 * 60 * 24 * 7), // 7일
     BLACKLIST_PREFIX_ACCESS("blacklist:access:"),
     BLACKLIST_PREFIX_REFRESH("blacklist:refresh:");

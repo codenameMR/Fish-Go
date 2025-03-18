@@ -1,7 +1,9 @@
 package com.fishgo.users.service;
 
+import com.fishgo.common.constants.ErrorCode;
 import com.fishgo.common.constants.JwtProperties;
 import com.fishgo.common.constants.UploadPaths;
+import com.fishgo.common.exception.CustomException;
 import com.fishgo.common.service.ImageService;
 import com.fishgo.common.util.JwtUtil;
 import com.fishgo.common.util.NicknameGenerator;
@@ -87,7 +89,7 @@ public class UsersService {
 
     }
 
-    public LoginResponseDto loginUser(LoginRequestDto usersDto, HttpServletResponse response) {
+    public UserResponseDto loginUser(LoginRequestDto usersDto, HttpServletResponse response) {
         Users user = findByUserEmail(usersDto.getEmail());
 
         if(!passwordEncoder.matches(usersDto.getPassword(), user.getPassword())){
@@ -100,42 +102,28 @@ public class UsersService {
         String accessToken = jwtUtil.generateAccessToken(jwtRequestDto);
         String refreshToken = jwtUtil.generateRefreshToken(jwtRequestDto);
 
-        // Refresh Token을 쿠키에 저장
-        Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
-        refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setSecure(true); // HTTPS 사용 시
-        refreshTokenCookie.setPath("/");
-        refreshTokenCookie.setMaxAge(JwtProperties.REFRESH_TOKEN_EXPIRATION.getIntValue() / 1000);
-        response.addCookie(refreshTokenCookie);
+        // Refresh, Access Token을 쿠키에 저장
+        response.addCookie(registerToken("refreshToken", refreshToken));
+        response.addCookie(registerToken("accessToken", accessToken));
 
-        // 사용자 및 Access Token Response 데이터 구성
-        LoginResponseDto responseData = new LoginResponseDto();
-        responseData.setUser(userResponseDto);
-        responseData.setAccessToken(accessToken);
-
-
-        return responseData;
+        return userResponseDto;
     }
 
     public void logoutUser(HttpServletResponse response, String refreshToken, String accessToken) {
         // 쿠키 만료시켜서 삭제
-        Cookie cookie = new Cookie("refreshToken", null);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0); // 즉시 만료
-        response.addCookie(cookie);
+        response.addCookie(invalidateToken("refreshToken"));
+        response.addCookie(invalidateToken("accessToken"));
 
         // AccessToken 블랙리스트 등록
         redisTemplate.opsForValue().set(JwtProperties.BLACKLIST_PREFIX_ACCESS.getValue() + accessToken,
                 "true",
-                JwtProperties.ACCESS_TOKEN_EXPIRATION.getIntValue(),
+                JwtProperties.ACCESS_TOKEN_EXPIRATION.getIntValue() / 1000,
                 TimeUnit.SECONDS);
 
         // RefreshToken 블랙리스트 등록
         redisTemplate.opsForValue().set(JwtProperties.BLACKLIST_PREFIX_REFRESH.getValue() + refreshToken,
                 "true",
-                JwtProperties.REFRESH_TOKEN_EXPIRATION.getIntValue(),
+                JwtProperties.REFRESH_TOKEN_EXPIRATION.getIntValue() / 1000,
                 TimeUnit.SECONDS);
     }
 
@@ -146,19 +134,16 @@ public class UsersService {
         log.debug("deleteUser userId : {}", userId);
 
         // 쿠키 만료시켜서 삭제
-        Cookie cookie = new Cookie("refreshToken", null);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0); // 즉시 만료
-        response.addCookie(cookie);
+        response.addCookie(invalidateToken("refreshToken"));
+        response.addCookie(invalidateToken("accessToken"));
+
         usersRepository.deleteById(userId);
         log.debug("deleteUser successful userId : {}", userId);
     }
 
-    public String refreshToken(String refreshToken) {
-        if(isBlacklisted(refreshToken)) {
-           return null;
+    public void refreshToken(HttpServletResponse response, String refreshToken) {
+        if(jwtUtil.isRefreshBlacklisted(refreshToken)) {
+           throw new CustomException(ErrorCode.BLACKLISTED_TOKEN.getCode(), "블랙리스트 처리된 토큰입니다.");
         }
 
         long userId = jwtUtil.extractUserId(refreshToken);
@@ -166,16 +151,12 @@ public class UsersService {
         JwtRequestDto jwtRequestDto = userMapper.toJwtRequestDto(user);
 
         if (jwtUtil.isTokenValid(refreshToken, jwtRequestDto)) {
-            return jwtUtil.generateAccessToken(jwtRequestDto);
+            String newAccessToken = jwtUtil.generateAccessToken(jwtRequestDto);
+            response.addCookie(registerToken("accessToken", newAccessToken));
         } else {
-            return null;
+            throw new CustomException(ErrorCode.INVALID_TOKEN.getCode(), "유효하지 않은 토큰입니다.");
         }
 
-    }
-
-    private boolean isBlacklisted(String token) {
-        // Redis에 "blacklist:<토큰>" 존재 여부 확인
-        return Boolean.TRUE.equals(redisTemplate.hasKey(JwtProperties.BLACKLIST_PREFIX_ACCESS.getValue() + token));
     }
 
     private void createUserDir(long userId) throws FileSystemException {
@@ -298,6 +279,40 @@ public class UsersService {
         currentUser.getProfile().setName(profileName);
 
         usersRepository.save(currentUser);
+    }
+
+    /**
+     * 토큰 무효화
+     * @param token refreshToken or AccessToken
+     */
+    private Cookie invalidateToken(String token) {
+
+        Cookie cookie = new Cookie(token, null);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0); // 즉시 만료
+
+        return cookie;
+    }
+
+    /**
+     * 토큰 쿠키 생성
+     * @param tokenType refreshToken or accessToken
+     * @param tokenValue 토큰 값
+     */
+    private Cookie registerToken(String tokenType, String tokenValue) {
+        int maxAge = tokenType.equals("accessToken") ?
+                JwtProperties.ACCESS_TOKEN_EXPIRATION.getIntValue() / 1000
+                : JwtProperties.REFRESH_TOKEN_EXPIRATION.getIntValue() / 1000;
+
+        Cookie cookie = new Cookie(tokenType, tokenValue);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true); // HTTPS 사용 시
+        cookie.setPath("/");
+        cookie.setMaxAge(maxAge);
+
+        return cookie;
     }
 
 }
