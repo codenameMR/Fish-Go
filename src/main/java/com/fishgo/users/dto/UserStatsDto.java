@@ -1,5 +1,6 @@
 package com.fishgo.users.dto;
 
+import com.fishgo.common.util.ImagePathHelper;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,4 +15,7 @@ public class UserStatsDto {
     private long commentCount;    // 댓글 수
     private long likeCount;           // 좋아요 수
 
+    public void setProfileImg(String profileImg) {
+        this.profileImg = ImagePathHelper.buildProfileImagePath(profileImg);
+    }
 }

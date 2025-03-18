@@ -1,5 +1,6 @@
 package com.fishgo.posts.comments.dto;
 
+import com.fishgo.common.util.ImagePathHelper;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -38,7 +39,7 @@ public class CommentResponseDto {
     @Schema(description = "대댓글 필드")
     private List<CommentResponseDto> replies;
 
-
-
-
+    public void setProfileImg(String profileImg) {
+        this.profileImg = ImagePathHelper.buildProfileImagePath(profileImg);
+    }
 }

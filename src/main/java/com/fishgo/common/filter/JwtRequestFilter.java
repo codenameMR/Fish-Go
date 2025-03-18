@@ -42,11 +42,14 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
             // 1. Access Token 추출
             final Cookie[] cookies = request.getCookies();
-            Cookie accessTokenCookie = Arrays.stream(cookies)
-                    .filter(cookie -> cookie.getName().equals("accessToken"))
-                    .findFirst()
-                    .orElse(null);
-            String accessToken = accessTokenCookie != null ? accessTokenCookie.getValue() : null;
+            String accessToken = null;
+            if(cookies != null){
+                Cookie accessTokenCookie = Arrays.stream(cookies)
+                        .filter(cookie -> cookie.getName().equals("accessToken"))
+                        .findFirst()
+                        .orElse(null);
+                accessToken = accessTokenCookie != null ? accessTokenCookie.getValue() : null;
+            }
 
 
             // 2. Access Token 검증
