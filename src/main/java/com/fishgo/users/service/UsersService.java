@@ -1,5 +1,6 @@
 package com.fishgo.users.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fishgo.common.constants.UploadPaths;
 import com.fishgo.common.service.ImageService;
 import com.fishgo.common.util.JwtUtil;
@@ -14,6 +15,7 @@ import com.fishgo.users.dto.*;
 import com.fishgo.users.dto.mapper.UserMapper;
 import com.fishgo.users.repository.ProfileRepository;
 import com.fishgo.users.repository.UsersRepository;
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,8 @@ public class UsersService {
     private final CommentRepository commentRepository;
     private final ImageService imageService;
     private final ProfileRepository profileRepository;
+    private final EmailVerService emailVerificationService;
+    private final EmailService emailService;
 
     /**
      * 회원가입 처리 및 프로필 디렉토리 생성
@@ -46,40 +50,65 @@ public class UsersService {
      * @throws FileSystemException 프로필 디렉토리 생성 실패시 예외 던지기
      */
     @Transactional
-    public void registerUser(SignupRequestDto usersDto) throws FileSystemException {
+    public void registerUser(SignupRequestDto usersDto) throws FileSystemException, MessagingException, JsonProcessingException {
         if(usersRepository.existsByEmail(usersDto.getEmail())){
             throw new IllegalArgumentException("이미 존재하는 아이디입니다.");
         }
 
-        // 초기 랜덤 닉네임 생성
-        String randomName = NicknameGenerator.generateNickname();
-        boolean isNicknameUsed = usersRepository.existsByProfile_Name(randomName);
+        // 이메일 인증 코드 생성 및 저장
+        String verificationCode = emailVerificationService.generateVerificationCode(usersDto.getEmail());
 
-        while(isNicknameUsed){
-            randomName = NicknameGenerator.generateNickname();
-            isNicknameUsed = usersRepository.existsByProfile_Name(randomName);
-        }
+        // 이메일 전송
+        emailService.sendVerificationEmail(usersDto.getEmail(), verificationCode);
 
-        // 패스워드 암호화
-        String encodedPassword = passwordEncoder.encode(usersDto.getPassword());
+        // 사용자 정보를 임시 저장
+        emailVerificationService.saveUserInfo(usersDto.getEmail(), usersDto);
 
-        Profile profile = Profile.builder()
+
+    }
+
+    public boolean verifyEmail(String email, String code) throws JsonProcessingException, FileSystemException {
+        boolean isVerified = emailVerificationService.verifyCode(email, code);
+        if (isVerified) {
+            // 임시 저장된 사용자 정보를 가져와서 데이터베이스에 저장
+            SignupRequestDto usersDto = emailVerificationService.getUserInfo(email);
+            // 초기 랜덤 닉네임 생성
+            String randomName = NicknameGenerator.generateNickname();
+            boolean isNicknameUsed = usersRepository.existsByProfile_Name(randomName);
+
+            while(isNicknameUsed){
+                randomName = NicknameGenerator.generateNickname();
+                isNicknameUsed = usersRepository.existsByProfile_Name(randomName);
+            }
+
+            // 패스워드 암호화
+            String encodedPassword = passwordEncoder.encode(usersDto.getPassword());
+
+            Profile profile = Profile.builder()
                     .name(randomName)
                     .build();
 
-        Users user = Users.builder()
-                .email(usersDto.getEmail())
-                .password(encodedPassword)
-                .role("USER")
-                .build();
+            Users user = Users.builder()
+                    .email(usersDto.getEmail())
+                    .password(encodedPassword)
+                    .role("USER")
+                    .build();
 
-        user.addProfile(profile);
+            user.addProfile(profile);
 
-        // DB 저장
-        Users saveUser = usersRepository.save(user);
-        // 프로필 디렉토리 생성
-        createUserDir(saveUser.getId());
+            // DB 저장
+            Users saveUser = usersRepository.save(user);
+            // 프로필 디렉토리 생성
+            createUserDir(saveUser.getId());
 
+            // 임시 저장된 사용자 정보 삭제
+            emailVerificationService.deleteUserInfo(email);
+
+            // 인증 코드 삭제
+            emailVerificationService.deleteVerificationCode(email);
+
+        }
+        return isVerified;
     }
 
     public LoginResponseDto loginUser(LoginRequestDto usersDto, HttpServletResponse response) {

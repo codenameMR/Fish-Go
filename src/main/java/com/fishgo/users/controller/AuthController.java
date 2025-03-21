@@ -54,6 +54,21 @@ public class AuthController {
 
     }
 
+    @GetMapping("/verify")
+    public ResponseEntity<ApiResponse<String>> verifyEmail(
+            @RequestParam("email") String email,
+            @RequestParam("code") String code) throws Exception {
+
+        boolean isVerified = usersService.verifyEmail(email, code);
+
+        if (isVerified) {
+            return ResponseEntity.ok(new ApiResponse<>("이메일 인증이 성공적으로 완료되었습니다.", HttpStatus.OK.value()));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>("인증 코드가 유효하지 않습니다.", HttpStatus.BAD_REQUEST.value()));
+        }
+    }
+
     @Operation(summary = "로그인", description = "아이디와 비밀번호로 로그인을 수행합니다.")
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponseDto>> login(@RequestBody LoginRequestDto usersDto, HttpServletResponse response){
