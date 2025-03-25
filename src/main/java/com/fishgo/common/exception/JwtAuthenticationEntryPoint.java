@@ -22,17 +22,17 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
                          HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
 
-        log.error("권한 없음 예외 - AuthenticationException : {}", authException.getMessage());
+        log.error("권한 없음 예외 - AuthenticationException : {}", authException.getMessage(), authException);
 
         // 401 Unauthorized 상태 코드로 응답
-        handleException(response, "권한이 없습니다.", ErrorCode.AUTHENTICATION_FAILED.getCode());
+        handleException(response, ErrorCode.AUTHENTICATION_FAILED.getCode());
     }
 
-    private void handleException(HttpServletResponse response, String message, int errorCode) throws IOException {
+    private void handleException(HttpServletResponse response, int errorCode) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json;charset=UTF-8");
 
-        String errorResponse = "{\"message\":\"" + message + "\"," +
+        String errorResponse = "{\"message\":\"" + "권한이 없습니다." + "\"," +
                 "\"status\":"+ errorCode +"}";
         response.getWriter().write(errorResponse);
     }

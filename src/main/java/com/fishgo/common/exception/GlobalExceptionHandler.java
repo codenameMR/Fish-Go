@@ -1,10 +1,12 @@
 package com.fishgo.common.exception;
 
 
+import com.fishgo.common.constants.ErrorCode;
 import com.fishgo.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -18,6 +20,13 @@ import java.nio.file.FileSystemException;
 @Slf4j
 @Hidden
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(RedisConnectionFailureException.class)
+    public ResponseEntity<ApiResponse<String>> handleRedisConnectionFailureException(RedisConnectionFailureException e) {
+        log.error("Redis connection failure", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(e.getMessage(), ErrorCode.REDIS_CONNECTION_FAILURE.getCode()));
+    }
 
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ApiResponse<String>> handleCustomException(CustomException ex, HttpServletRequest request) {
@@ -33,7 +42,7 @@ public class GlobalExceptionHandler {
         log.error("HttpRequestMethodNotSupportedException at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
         return ResponseEntity
                 .status(HttpStatus.METHOD_NOT_ALLOWED)
-                .body(new ApiResponse<>(ex.getMessage(), HttpStatus.METHOD_NOT_ALLOWED.value()));
+                .body(new ApiResponse<>(ex.getMessage(), ErrorCode.METHOD_NOT_ALLOWED.getCode()));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
@@ -41,7 +50,7 @@ public class GlobalExceptionHandler {
         log.error("NoResourceFoundException at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
-                .body(new ApiResponse<>(ex.getMessage(), HttpStatus.NOT_FOUND.value()));
+                .body(new ApiResponse<>(ex.getMessage(), ErrorCode.NOT_FOUND.getCode()));
     }
 
     @ExceptionHandler(FileSystemException.class)
@@ -49,7 +58,7 @@ public class GlobalExceptionHandler {
         log.error("handleFileSystemException  at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ApiResponse<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value()));
+                .body(new ApiResponse<>(ex.getMessage(), ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
     }
 
     @ExceptionHandler(RuntimeException.class)
@@ -57,7 +66,7 @@ public class GlobalExceptionHandler {
         log.error("RuntimeException  at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(new ApiResponse<>(ex.getMessage(), HttpStatus.BAD_REQUEST.value()));
+                .body(new ApiResponse<>(ex.getMessage(), ErrorCode.BAD_REQUEST.getCode()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -65,15 +74,15 @@ public class GlobalExceptionHandler {
         log.error("IllegalArgumentException  at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(new ApiResponse<>(ex.getMessage(), HttpStatus.BAD_REQUEST.value()));
+                .body(new ApiResponse<>(ex.getMessage(), ErrorCode.BAD_REQUEST.getCode()));
     }
 
-        @ExceptionHandler(Exception.class)
+    @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<String>> handleAllExceptions(Exception ex, HttpServletRequest request) {
         log.error("Exception  at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ApiResponse<>("서버 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR.value()));
+                .body(new ApiResponse<>("서버 오류가 발생했습니다.", ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
     }
 
 }
