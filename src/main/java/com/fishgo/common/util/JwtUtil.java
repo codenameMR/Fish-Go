@@ -5,8 +5,8 @@ import com.fishgo.users.dto.JwtRequestDto;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -16,14 +16,17 @@ import java.util.function.Function;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class JwtUtil {
 
     private final RedisTemplate<String, String> redisTemplate;
+    private final SecretKey SECRET_KEY; // 안전한 키 생성
 
-    //512 bit
-    private final String originalKey = "qYtjTJEL77ty3e2yCVTDUZ5Bm13czUHO3JkovgseW2Vnzm+l3iBqv2avHUJZt6/8BDPEETy7rk6kplS3zlsTuA==";
-    private final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(originalKey.getBytes()); // 안전한 키 생성
+    public JwtUtil(RedisTemplate<String, String> redisTemplate,
+                   @Value("${jwt.original-key}") String originalKey) {
+        this.redisTemplate = redisTemplate;
+        //512 bit
+        this.SECRET_KEY = Keys.hmacShaKeyFor(originalKey.getBytes());
+    }
 
 
     // Access Token 생성
