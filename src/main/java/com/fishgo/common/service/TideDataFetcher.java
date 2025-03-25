@@ -3,6 +3,8 @@ package com.fishgo.common.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -19,14 +21,16 @@ import java.util.concurrent.*;
 
 //조석예보 API Fetcher
 @Slf4j
+@Component
 public class TideDataFetcher {
-    private static volatile Map<String, String> cachedDataMap = new ConcurrentHashMap<>();
+    private static final Map<String, String> cachedDataMap = new ConcurrentHashMap<>();
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final HttpClient client = HttpClient.newHttpClient();
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(3);
 
     private static final String URL = "http://www.khoa.go.kr/api/oceangrid/tideObsPreTab/search.do";
-    private static final String SERVICE_KEY = "AfoLzfACF0WuhmLkWKPx0A==";
+    @Value("${api.tide.service-key}")
+    private String serviceKey;
     private static final String[] OBS_CODES = {
         "SO_0732","SO_0733","SO_0734","SO_0735","SO_0736","SO_0737","SO_0555","DT_0054","SO_0739",
         "SO_0740","SO_0699","SO_0562","SO_0573","SO_0581","SO_0571","SO_0578","SO_0567","SO_0576",
@@ -77,7 +81,7 @@ public class TideDataFetcher {
         CompletableFuture<Void> allRequests = CompletableFuture.allOf(
                 Arrays.stream(OBS_CODES)
                         .map(obsCode -> {
-                            String uri = URL + "?Date=" + todayDate + "&ServiceKey=" + SERVICE_KEY + "&ObsCode=" + obsCode + "&ResultType=json";
+                            String uri = URL + "?Date=" + todayDate + "&ServiceKey=" + serviceKey + "&ObsCode=" + obsCode + "&ResultType=json";
                             return fetchApiData(uri) // 비동기 API 호출
                                     .thenAccept(response -> {
                                         cachedDataMap.put(obsCode, response);  // 응답을 캐시에 저장
