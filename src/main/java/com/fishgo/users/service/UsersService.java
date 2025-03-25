@@ -337,7 +337,7 @@ public class UsersService {
 
         Cookie cookie = new Cookie(tokenType, tokenValue);
         cookie.setHttpOnly(true);
-        cookie.setSecure(true); // HTTPS 사용 시
+        cookie.setSecure(false); // 추후 정식 배포 후 true로 변경(https)
         cookie.setPath("/");
         cookie.setMaxAge(maxAge);
 

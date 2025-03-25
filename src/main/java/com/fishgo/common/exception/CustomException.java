@@ -1,5 +1,8 @@
 package com.fishgo.common.exception;
 
+import lombok.Getter;
+
+@Getter
 public class CustomException extends RuntimeException {
     private final int code;
 
@@ -8,7 +11,4 @@ public class CustomException extends RuntimeException {
         this.code = code;
     }
 
-    public int getCode() {
-        return code;
-    }
 }
