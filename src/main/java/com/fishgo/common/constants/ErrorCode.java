@@ -5,6 +5,8 @@ import lombok.Getter;
 @Getter
 public enum ErrorCode {
     BAD_REQUEST(400001),
+    KAKAO_LOGIN_FAILED(400002),
+    KAKAO_TOKEN_ISSUE_FAIL(400003),
 
     EXPIRED_TOKEN(401001),
     BLACKLISTED_TOKEN(401002),

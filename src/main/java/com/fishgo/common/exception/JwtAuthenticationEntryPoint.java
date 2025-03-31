@@ -22,7 +22,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
                          HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
 
-        log.error("권한 없음 예외 - AuthenticationException : {}", authException.getMessage(), authException);
+        log.error("권한 없음 예외 - AuthenticationException at {} : {}", request.getRequestURI(), authException.getMessage(), authException);
 
         // 401 Unauthorized 상태 코드로 응답
         handleException(response, ErrorCode.AUTHENTICATION_FAILED.getCode());

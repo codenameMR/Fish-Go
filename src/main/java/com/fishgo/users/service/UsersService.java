@@ -68,7 +68,12 @@ public class UsersService {
         }
 
         // 패스워드 암호화
-        String encodedPassword = passwordEncoder.encode(usersDto.getPassword());
+        String encodedPassword;
+        if(usersDto.getSocialInfo() != null){ // 소셜 유저의 경우 비밀번호가 따로 없기 때문에 그냥 넘김.
+            encodedPassword = usersDto.getPassword();
+        } else {
+            encodedPassword = passwordEncoder.encode(usersDto.getPassword());
+        }
 
         Profile profile = Profile.builder()
                     .name(randomName)
@@ -78,6 +83,7 @@ public class UsersService {
                 .email(usersDto.getEmail())
                 .password(encodedPassword)
                 .role("USER")
+                .socialLoginInfo(usersDto.getSocialInfo())
                 .build();
 
         user.addProfile(profile);

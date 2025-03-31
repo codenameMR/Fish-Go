@@ -46,6 +46,7 @@ public class AuthController {
         }
 
         usersService.registerUser(usersDto);
+
         ApiResponse<String> response = new ApiResponse<>("회원가입이 성공적으로 완료되었습니다.", HttpStatus.OK.value());
         return ResponseEntity.ok(response);
 
