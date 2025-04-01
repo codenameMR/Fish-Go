@@ -9,6 +9,7 @@ import com.fishgo.users.dto.SignupRequestDto;
 import com.fishgo.users.service.UsersService;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystemException;
 import java.util.Map;
 
+@Tag(name = "카카오 인증 API")
 @Slf4j
 @RestController
 @RequiredArgsConstructor
