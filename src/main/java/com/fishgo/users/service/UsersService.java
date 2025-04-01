@@ -53,7 +53,7 @@ public class UsersService {
      * @throws FileSystemException 프로필 디렉토리 생성 실패시 예외 던지기
      */
     @Transactional
-    public void registerUser(SignupRequestDto usersDto) throws FileSystemException {
+    public Users registerUser(SignupRequestDto usersDto) throws FileSystemException {
         if(usersRepository.existsByEmail(usersDto.getEmail())){
             throw new IllegalArgumentException("이미 존재하는 아이디입니다.");
         }
@@ -93,6 +93,7 @@ public class UsersService {
         // 프로필 디렉토리 생성
         createUserDir(saveUser.getId());
 
+        return saveUser;
     }
 
     public UserResponseDto loginUser(LoginRequestDto usersDto, HttpServletResponse response) {
@@ -307,7 +308,7 @@ public class UsersService {
      * @param tokenType refreshToken or accessToken
      * @param tokenValue 토큰 값
      */
-    private Cookie registerToken(String tokenType, String tokenValue) {
+    public Cookie registerToken(String tokenType, String tokenValue) {
         int maxAge = tokenType.equals("accessToken") ?
                 JwtProperties.ACCESS_TOKEN_EXPIRATION.getIntValue() / 1000
                 : JwtProperties.REFRESH_TOKEN_EXPIRATION.getIntValue() / 1000;
