@@ -39,7 +39,7 @@ public class SecurityConfig {
             // 회원가입, 로그인, 게시글 목록, 게시글 상세, 댓글 목록, 조석 예보, Swagger 관련 요청을 제외한 모든 요청은 권한 필요.
             .authorizeHttpRequests((authorizeRequests) ->
                     authorizeRequests.requestMatchers("/api/auth/register", "/api/auth/login","/swagger-ui/**",
-                                    "/api/swagger-ui.html", "/api/v3/api-docs/**").permitAll()
+                                    "/api/swagger-ui.html", "/api/v3/api-docs/**", "/api/auth/register","/api/auth/resendVerify","/api/auth/verify").permitAll()
                             .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/{postId}", "/api/comment", "/api/tide/{obsCode}").permitAll()
                             .anyRequest().authenticated()
             )

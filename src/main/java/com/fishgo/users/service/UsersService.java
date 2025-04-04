@@ -118,6 +118,17 @@ public class UsersService {
         return isVerified;
     }
 
+    public void resendVerificationCode(String email) throws MessagingException, JsonProcessingException {
+        // 이메일 유효성 검사 (간단한 패턴 체크)
+        if (!email.matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
+            throw new IllegalArgumentException("유효하지 않은 이메일 형식입니다.");
+        }
+        // 인증 코드 재생성
+        String newVerificationCode = emailVerificationService.regenerateVerifyCode(email);
+        // 이메일 전송
+        emailService.sendVerificationEmail(email, newVerificationCode);
+    }
+
     public UserResponseDto loginUser(LoginRequestDto usersDto, HttpServletResponse response) {
         Users user = findByUserEmail(usersDto.getEmail());
 

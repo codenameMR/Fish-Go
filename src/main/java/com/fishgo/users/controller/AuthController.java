@@ -51,6 +51,7 @@ public class AuthController {
 
     }
 
+    @Operation(summary = "이메일 인증", description = "회원가입 시 입력한 사용자 이메일로 전송된 메일 인증 코드로 이메일 인증을 진행 합니다.")
     @GetMapping("/verify")
     public ResponseEntity<ApiResponse<String>> verifyEmail(
             @RequestParam("email") String email,
@@ -63,6 +64,22 @@ public class AuthController {
         } else {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ApiResponse<>("인증 코드가 유효하지 않습니다.", HttpStatus.BAD_REQUEST.value()));
+        }
+    }
+
+    @Operation(summary = "이메일 재전송", description = "회원가입 시 입력한 사용자 이메일로 인증 코드 메일을 재전송 합니다.")
+    @PostMapping("/resendVerify")
+    public ResponseEntity<ApiResponse<String>> resendVerify(@RequestParam("email") String email) {
+        try {
+            usersService.resendVerificationCode(email);
+            return ResponseEntity.ok(new ApiResponse<>("인증 코드가 재전송되었습니다.", HttpStatus.OK.value()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(e.getMessage(), HttpStatus.BAD_REQUEST.value()));
+        } catch (Exception e) {
+            log.error("인증 코드 재전송 중 오류 발생: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>("인증 코드 재전송 중 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR.value()));
         }
     }
 
