@@ -1,7 +1,6 @@
 package com.fishgo.users.controller;
 
 import com.fishgo.common.response.ApiResponse;
-import com.fishgo.common.response.AuthResponse;
 import com.fishgo.common.util.JwtUtil;
 import com.fishgo.users.domain.Users;
 import com.fishgo.users.dto.LoginRequestDto;

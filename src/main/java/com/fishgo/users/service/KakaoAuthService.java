@@ -85,7 +85,7 @@ public class KakaoAuthService {
                     .socialInfo("KAKAO")
                     .build();
 
-            user = usersService.registerUser(signupRequestDto);
+            user = usersService.registerSocialUser(signupRequestDto);
         }
 
         // 기존 가입자가 KAKAO가 아닌 다른 소셜/일반 회원이라면 예외 처리

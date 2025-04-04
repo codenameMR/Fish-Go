@@ -71,7 +71,47 @@ public class UsersService {
         // 사용자 정보를 임시 저장
         emailVerificationService.saveUserInfo(usersDto.getEmail(), usersDto);
 
+    }
 
+    @Transactional
+    public Users registerSocialUser(SignupRequestDto signupRequestDto) throws FileSystemException {
+        if(usersRepository.existsByEmail(signupRequestDto.getEmail())){
+            return usersRepository.findByEmail(signupRequestDto.getEmail())
+                    .orElseThrow(() -> new IllegalArgumentException("사용자 조회 오류"));
+        }
+
+        // 초기 랜덤 닉네임 생성
+        String randomName = NicknameGenerator.generateNickname();
+        boolean isNicknameUsed = usersRepository.existsByProfile_Name(randomName);
+
+        while(isNicknameUsed){
+            randomName = NicknameGenerator.generateNickname();
+            isNicknameUsed = usersRepository.existsByProfile_Name(randomName);
+        }
+
+        // 패스워드 암호화
+        String encodedPassword = passwordEncoder.encode(signupRequestDto.getPassword());
+
+        Profile profile = Profile.builder()
+                .name(randomName)
+                .build();
+
+        Users user = Users.builder()
+                .email(signupRequestDto.getEmail())
+                .password(encodedPassword)
+                .role("USER")
+                .socialLoginInfo(signupRequestDto.getSocialInfo())
+                .build();
+
+        user.addProfile(profile);
+
+        // DB 저장
+        Users saveUser = usersRepository.save(user);
+
+        // 프로필 디렉토리 생성
+        createUserDir(saveUser.getId());
+
+        return saveUser;
     }
 
     public boolean verifyEmail(String email, String code) throws JsonProcessingException, FileSystemException {
@@ -183,7 +223,7 @@ public class UsersService {
 
     public void refreshToken(HttpServletResponse response, String refreshToken) {
         if(jwtUtil.isRefreshBlacklisted(refreshToken)) {
-           throw new CustomException(ErrorCode.BLACKLISTED_TOKEN.getCode(), "블랙리스트 처리된 토큰입니다.");
+            throw new CustomException(ErrorCode.BLACKLISTED_TOKEN.getCode(), "블랙리스트 처리된 토큰입니다.");
         }
 
         long userId = jwtUtil.extractUserId(refreshToken);
