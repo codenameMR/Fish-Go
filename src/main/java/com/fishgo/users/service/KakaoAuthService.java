@@ -13,6 +13,7 @@ import com.fishgo.users.repository.UsersRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,13 @@ public class KakaoAuthService {
     private final UsersRepository usersRepository;
     private final JwtUtil jwtUtil;
     private final UserMapper userMapper;
+
+    // 카카오 개발자 콘솔에서 발급받은 값
+    @Value("${kakao.rest.api.key}")
+    private String kakaoRestApiKey;
+
+    @Value("${kakao.redirect.uri}")
+    private String redirectUri;
 
     /**
      * 카카오 로그인 비즈니스 로직 처리:
@@ -104,8 +112,8 @@ public class KakaoAuthService {
     private Map<String, Object> requestAccessToken(String authorizationCode) {
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("grant_type", "authorization_code");
-        params.add("client_id", /* 실제 카카오 REST API 키 */ "YOUR_KAKAO_REST_API_KEY");
-        params.add("redirect_uri", /* 실제 리다이렉트 URI */ "YOUR_REDIRECT_URI");
+        params.add("client_id", kakaoRestApiKey);
+        params.add("redirect_uri", redirectUri);
         params.add("code", authorizationCode);
 
         HttpHeaders headers = new HttpHeaders();

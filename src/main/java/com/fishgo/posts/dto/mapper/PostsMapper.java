@@ -8,7 +8,6 @@ import com.fishgo.posts.dto.*;
 import org.mapstruct.*;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -38,6 +37,21 @@ public interface PostsMapper {
         );
     }
 
+    @Mapping(target = "userName", source = "post.users.profile.name")
+    @Mapping(target = "createdAt", source = "createdAt")
+    @Mapping(target = "isModify", source = "isModify")
+    @Mapping(target = "hashtag", source = "post.hashtag")  // Set<Hashtag>을 List<String>으로 매핑
+    @Mapping(target = "title", source = "title")
+    @Mapping(target = "contents", source = "contents")
+    @Mapping(target = "images", ignore = true)
+    @Mapping(target = "likeCount", source = "likeCount")
+    @Mapping(target = "viewCount", source = "viewCount")
+    @Mapping(target = "location", source = "location")
+    @Mapping(target = "fishType", source = "fishType")
+    @Mapping(target = "fishSize", source = "fishSize")
+    @Mapping(target = "lat", source = "lat")
+    @Mapping(target = "lon", source = "lon")
+    PostsDto toDtoWithoutImage(Posts post);
 
     @Mapping(target = "userName", source = "post.users.profile.name")
     @Mapping(target = "createdAt", source = "createdAt")
@@ -59,7 +73,7 @@ public interface PostsMapper {
     @Mapping(target = "hashtag", ignore = true)  // List<String>을 Set<Hashtag>로 매핑
     @Mapping(target = "title", source = "dto.title")
     @Mapping(target = "contents", source = "dto.contents")
-    @Mapping(target = "images", source = "dto.images")
+    @Mapping(target = "images", ignore = true)
     @Mapping(target = "location", source = "dto.location")
     @Mapping(target = "fishType", source = "dto.fishType")
     @Mapping(target = "fishSize", source = "dto.fishSize")
@@ -96,23 +110,6 @@ public interface PostsMapper {
     @AfterMapping
     default void linkImages(@MappingTarget Posts post) {
         post.getImages().forEach(img -> img.setPost(post));
-    }
-
-
-   /* // List<String> -> Set<Hashtag>으로 변환하는 메서드
-    default Set<Hashtag> mapToHashtagSet(List<String> hashtags) {
-        if (hashtags == null) return new HashSet<>();
-        return hashtags.stream()
-                .map(Hashtag::new)  // String을 Hashtag 객체로 변환
-                .collect(Collectors.toSet());
-    }*/
-
-    // List<String> -> Set<Iamge>으로 변환하는 메서드
-    default Set<PostImage> mapToImageSet(List<String> images) {
-        if (images == null) return new HashSet<>();
-        return images.stream()
-                .map(PostImage::new)  // String을 Image 객체로 변환
-                .collect(Collectors.toSet());
     }
 
     // Set<Hashtag> -> List<String>으로 변환하는 메서드

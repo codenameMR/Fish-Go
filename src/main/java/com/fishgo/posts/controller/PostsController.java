@@ -1,15 +1,14 @@
 package com.fishgo.posts.controller;
 
+import com.fishgo.common.exception.CustomException;
 import com.fishgo.common.response.ApiResponse;
 import com.fishgo.posts.domain.Posts;
-import com.fishgo.posts.dto.PostListResponseDto;
-import com.fishgo.posts.dto.PostsCreateRequestDto;
-import com.fishgo.posts.dto.PostsDto;
-import com.fishgo.posts.dto.PostsUpdateRequestDto;
+import com.fishgo.posts.dto.*;
 import com.fishgo.posts.service.PostsLikeService;
 import com.fishgo.posts.service.PostsService;
 import com.fishgo.users.domain.Users;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +18,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +26,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.FileSystemException;
 import java.util.List;
+import java.util.Set;
 
 @Tag(name = "게시글 API", description = "게시글 생성 및 수정, 검색 기능을 제공하는 API 입니다.")
 @RestController
@@ -54,19 +55,44 @@ public class PostsController {
 
     @Operation(summary = "게시글 생성", description = "게시글의 내용으로 게시글을 생성 합니다.")
     @PostMapping("/create")
-    public ResponseEntity<?> create(
-            @RequestPart(value = "param") PostsCreateRequestDto postsDto,
-            @RequestParam(value = "images", required = false) List<MultipartFile> images,
-            @AuthenticationPrincipal Users currentUser) throws FileSystemException {
+    public ResponseEntity<ApiResponse<PostsDto>> create(@RequestBody PostsCreateRequestDto postsDto,
+                                                        @AuthenticationPrincipal Users currentUser) {
 
             log.info("게시글 생성 요청 받음: {}", postsDto);
-            PostsDto savedPost = postsService.createPost(postsDto, images, currentUser);
+            PostsDto savedPost = postsService.createPost(postsDto, currentUser);
             ApiResponse<PostsDto> response = new ApiResponse<>(
                     "게시글이 저장 되었습니다.",
                     HttpStatus.OK.value(),
                     savedPost
             );
             return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "이미지 업로드 및 삭제", description = "업로드 할 이미지가 있으면 업로드, 삭제 할 이미지가 있으면 삭제 처리 합니다.\n **form-data**로 요청 보내야 합니다.")
+    @PutMapping(value = "/{postId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<List<ImageDto>>> uploadImage(@PathVariable(value = "postId") Long postId,
+                                                                   @Parameter(description = "업로드 할 이미지 리스트")
+                                                                       @RequestParam(value = "images", required = false) List<MultipartFile> images,
+                                                                   @Parameter(description = "삭제 할 이미지의 아이디 리스트 ex) [2,4,6]")
+                                                                       @RequestPart(value = "deleteImageIds", required = false) Set<Long> deleteImageIds,
+                                                                   @AuthenticationPrincipal Users currentUser) throws FileSystemException {
+
+        List<ImageDto> imageList = null;
+        if(images != null && !images.isEmpty()){
+            imageList = postsService.uploadImages(postId, images, currentUser);
+        }
+
+        if(deleteImageIds != null && !deleteImageIds.isEmpty()) {
+            imageList = postsService.deleteImages(postId, deleteImageIds, currentUser);
+        }
+
+        if(imageList == null) {
+            throw new CustomException(999999, "업로드 및 삭제 할 이미지가 없습니다.");
+        }
+
+        return ResponseEntity.ok(new ApiResponse<>("이미지 업로드 및 수정에 성공 했습니다.",
+                            HttpStatus.OK.value(),
+                            imageList));
     }
 
     @Operation(summary = "게시글 검색", description = "게시글의 제목, 해시태그, 어종 검색 로직 입니다.")
@@ -79,14 +105,13 @@ public class PostsController {
     }
 
     @Operation(summary = "게시글 수정", description = "게시글 ID와 내용으로 게시글을 수정합니다.")
-    @PutMapping("/{postId}")
+    @PutMapping(value = "/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<PostsDto>> updatePost(@PathVariable Long postId,
                                                             @RequestPart(value = "param") PostsUpdateRequestDto postsDto,
-                                                            @RequestParam(value = "newImages", required = false) List<MultipartFile> newImages,
-                                                            @AuthenticationPrincipal Users currentUser) throws FileSystemException {
+                                                            @AuthenticationPrincipal Users currentUser) {
 
 
-        PostsDto updatedPost = postsService.updatePost(postId, postsDto, newImages, currentUser);
+        PostsDto updatedPost = postsService.updatePost(postId, postsDto, currentUser);
         ApiResponse<PostsDto> response = new ApiResponse<>(
                 "게시글이 수정 되었습니다.",
                 HttpStatus.OK.value(),

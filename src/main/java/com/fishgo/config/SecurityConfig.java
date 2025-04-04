@@ -41,7 +41,7 @@ public class SecurityConfig {
                     authorizeRequests.requestMatchers("/api/auth/register", "/api/auth/login","/swagger-ui/**",
                                     "/api/swagger-ui.html", "/api/v3/api-docs/**", "/api/auth/kakao/callback", "/favicon.ico").permitAll()
                             .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/{postId}", "/api/comment",
-                                    "/api/auth/kakao", "/api/tide/{obsCode}").permitAll()
+                                    "/api/auth/kakao", "/api/tide/{obsCode}", "/api/map").permitAll()
                             .anyRequest().authenticated()
             )
             // 권한이 없는 요청이 들어왔을 때 동작할 AuthenticationEntryPoint

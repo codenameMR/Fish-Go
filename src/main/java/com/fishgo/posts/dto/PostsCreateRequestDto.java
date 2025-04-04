@@ -21,9 +21,6 @@ public class PostsCreateRequestDto {
     @Schema(description = "내용")
     private String contents;
 
-    @Schema(description = "이미지 리스트")
-    private List<String> images;
-
     @Schema(description = "해시태그 리스트")
     private List<String> hashTag;
 
