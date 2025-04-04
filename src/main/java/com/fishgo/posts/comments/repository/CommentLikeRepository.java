@@ -14,4 +14,6 @@ public interface CommentLikeRepository extends JpaRepository<CommentLike, Long> 
 
     // “이미 좋아요가 눌린 상태인지?” 확인할 때 사용
     boolean existsByCommentIdAndUserId(Long commentId, Long userId);
+
+    void deleteAllByCommentId(Long commentId);
 }

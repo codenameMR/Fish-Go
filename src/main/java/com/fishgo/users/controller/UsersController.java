@@ -26,7 +26,7 @@ public class UsersController {
 
     private final UsersService usersService;
 
-    @Operation(summary = "사용자 개요", description = "사용자의 게시글, 댓글에서 받은 좋아요 개수를 반환합니다.")
+    @Operation(summary = "사용자 개요", description = "사용자의 게시글, 댓글 수 및 받은 좋아요 개수를 반환합니다.")
     @GetMapping("/overview")
     public ResponseEntity<ApiResponse<UserStatsDto>> getOverview(@AuthenticationPrincipal Users user) {
 

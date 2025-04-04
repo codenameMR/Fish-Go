@@ -1,12 +1,9 @@
 package com.fishgo.common.service;
 
 import com.fishgo.common.constants.UploadPaths;
-import com.fishgo.posts.domain.PostImage;
-import com.fishgo.posts.domain.Posts;
 import com.fishgo.users.repository.ProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
@@ -60,31 +57,6 @@ public class ImageService {
                 return false;
             }
         return true;
-    }
-
-    /**
-     * 게시글 생성시 이미지 처리
-     * @param post DB에 저장된 post 객체
-     * @param files 게시글 이미지 리스트
-     */
-    @Transactional
-    public void handleCreatePostImageUpload(Posts post, List<MultipartFile> files) throws FileSystemException {
-
-        if (files != null && !files.isEmpty()) {
-            if(isImageFile(files)) {
-
-                // 이미지가 10장 넘어가면 예외 처리
-                if (files.size() > 10) {
-                    throw new RuntimeException("최대 10장까지만 업로드 가능합니다.");
-                }
-                for (MultipartFile image : files) {
-                    // 업로드 처리
-                    String savedFileName = uploadPostImage(image, post.getId());
-                    // DB저장
-                    post.addImage(new PostImage(savedFileName));
-                }
-            }
-        }
     }
 
     /**

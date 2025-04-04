@@ -341,7 +341,7 @@ public class UsersService {
      * @param tokenType refreshToken or accessToken
      * @param tokenValue 토큰 값
      */
-    private Cookie registerToken(String tokenType, String tokenValue) {
+    public Cookie registerToken(String tokenType, String tokenValue) {
         int maxAge = tokenType.equals("accessToken") ?
                 JwtProperties.ACCESS_TOKEN_EXPIRATION.getIntValue() / 1000
                 : JwtProperties.REFRESH_TOKEN_EXPIRATION.getIntValue() / 1000;

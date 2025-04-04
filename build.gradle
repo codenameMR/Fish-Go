@@ -40,6 +40,11 @@ dependencies {
 	testImplementation 'io.projectreactor:reactor-test'
     annotationProcessor "org.projectlombok:lombok:1.18.30"
 
+	// Lombok
+	implementation "org.projectlombok:lombok:1.18.30"
+	testImplementation 'io.projectreactor:reactor-test'
+    annotationProcessor "org.projectlombok:lombok:1.18.30"
+
 	// Lombok + MapStruct binding
 	implementation 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
 	annotationProcessor "org.projectlombok:lombok-mapstruct-binding:0.2.0"

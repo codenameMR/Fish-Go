@@ -1,13 +1,13 @@
 package com.fishgo.posts.dto.mapper;
 
+import com.fishgo.common.constants.UploadPaths;
 import com.fishgo.posts.domain.Hashtag;
+import com.fishgo.posts.domain.PostImage;
 import com.fishgo.posts.domain.Posts;
-import com.fishgo.posts.dto.PostsDto;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import com.fishgo.posts.dto.*;
+import org.mapstruct.*;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -15,13 +15,51 @@ import java.util.stream.Collectors;
 @Mapper(componentModel = "spring")
 public interface PostsMapper {
 
-    @Mapping(target = "userId", source = "post.users.id")
+    // Posts -> PostResponseDto 변환
+    @Mapping(target = "id", source = "posts.id")
+    @Mapping(target = "userName", source = "posts.users.profile.name")
+    @Mapping(target = "userProfileImg", source = "posts.users.profile.profileImg")
+    @Mapping(target = "title", source = "posts.title")
+    @Mapping(target = "contents", source = "posts.contents")
+    @Mapping(target = "thumbnail", ignore = true)
+    @Mapping(target = "likeCount", source = "posts.likeCount")
+    @Mapping(target = "viewCount", source = "posts.viewCount")
+    @Mapping(target = "createdAt", source = "posts.createdAt")
+    PostListResponseDto toResponseDto(Posts posts);
+
+    @AfterMapping // 게시글의 첫번째 이미지를 썸네일로 지정
+    default void setThumbnail(Posts posts, @MappingTarget PostListResponseDto dto) {
+        dto.setThumbnail(
+                posts.getImages().stream()
+                        .findFirst()
+                        .map(PostImage::getImageName)
+                        .orElse(null)
+        );
+    }
+
+    @Mapping(target = "userName", source = "post.users.profile.name")
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "isModify", source = "isModify")
-    @Mapping(target = "hashTag", source = "post.hashTag")  // Set<Hashtag>을 List<String>으로 매핑
+    @Mapping(target = "hashtag", source = "post.hashtag")  // Set<Hashtag>을 List<String>으로 매핑
     @Mapping(target = "title", source = "title")
     @Mapping(target = "contents", source = "contents")
-    @Mapping(target = "img", source = "img")
+    @Mapping(target = "images", ignore = true)
+    @Mapping(target = "likeCount", source = "likeCount")
+    @Mapping(target = "viewCount", source = "viewCount")
+    @Mapping(target = "location", source = "location")
+    @Mapping(target = "fishType", source = "fishType")
+    @Mapping(target = "fishSize", source = "fishSize")
+    @Mapping(target = "lat", source = "lat")
+    @Mapping(target = "lon", source = "lon")
+    PostsDto toDtoWithoutImage(Posts post);
+
+    @Mapping(target = "userName", source = "post.users.profile.name")
+    @Mapping(target = "createdAt", source = "createdAt")
+    @Mapping(target = "isModify", source = "isModify")
+    @Mapping(target = "hashtag", source = "post.hashtag")  // Set<Hashtag>을 List<String>으로 매핑
+    @Mapping(target = "title", source = "title")
+    @Mapping(target = "contents", source = "contents")
+    @Mapping(target = "images", expression = "java(mapToImageDtoList(post.getImages(), post.getId()))")
     @Mapping(target = "likeCount", source = "likeCount")
     @Mapping(target = "viewCount", source = "viewCount")
     @Mapping(target = "location", source = "location")
@@ -31,35 +69,65 @@ public interface PostsMapper {
     @Mapping(target = "lon", source = "lon")
     PostsDto toDto(Posts post);
 
+    @Mapping(target = "users", ignore = true)
+    @Mapping(target = "hashtag", ignore = true)  // List<String>을 Set<Hashtag>로 매핑
+    @Mapping(target = "title", source = "dto.title")
+    @Mapping(target = "contents", source = "dto.contents")
+    @Mapping(target = "images", ignore = true)
+    @Mapping(target = "location", source = "dto.location")
+    @Mapping(target = "fishType", source = "dto.fishType")
+    @Mapping(target = "fishSize", source = "dto.fishSize")
+    @Mapping(target = "lat", source = "dto.lat")
+    @Mapping(target = "lon", source = "dto.lon")
+    @Mapping(target = "likeCount", ignore = true)
+    @Mapping(target = "viewCount", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "isModify", constant = "false")
+    @Mapping(target = "likes", ignore = true)
+    Posts toEntity(PostsCreateRequestDto dto);
+
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "title", source = "dto.title")
+    @Mapping(target = "contents", source = "dto.contents")
+    @Mapping(target = "location", source = "dto.location")
+    @Mapping(target = "fishType", source = "dto.fishType")
+    @Mapping(target = "fishSize", source = "dto.fishSize")
+    @Mapping(target = "lat", source = "dto.lat")
+    @Mapping(target = "lon", source = "dto.lon")
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "users", ignore = true)
+    @Mapping(target = "images", ignore = true)
+    @Mapping(target = "likeCount", ignore = true)
+    @Mapping(target = "viewCount", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "isModify", constant = "true")
+    @Mapping(target = "hashtag", ignore = true)
+    @Mapping(target = "likes", ignore = true)
+    void updateFromDto(PostsUpdateRequestDto dto, @MappingTarget Posts entity);
+
+
+    @AfterMapping
+    default void linkImages(@MappingTarget Posts post) {
+        post.getImages().forEach(img -> img.setPost(post));
+    }
+
     // Set<Hashtag> -> List<String>으로 변환하는 메서드
-    default List<String> mapToStringList(Set<Hashtag> hashtags) {
+    default List<String> mapToStringHashtagList(Set<Hashtag> hashtags) {
         if (hashtags == null) return new ArrayList<>();
         return hashtags.stream()
                 .map(Hashtag::getName)  // Hashtag의 이름을 String으로 변환
                 .collect(Collectors.toList());
     }
 
-    @Mapping(target = "users", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "isModify", source = "dto.isModify", defaultValue = "false")
-    @Mapping(target = "hashTag", source = "dto.hashTag")  // List<String>을 Set<Hashtag>로 매핑
-    @Mapping(target = "title", source = "dto.title")
-    @Mapping(target = "contents", source = "dto.contents")
-    @Mapping(target = "img", source = "dto.img")
-    @Mapping(target = "likeCount", source = "dto.likeCount")
-    @Mapping(target = "viewCount", source = "dto.viewCount")
-    @Mapping(target = "location", source = "dto.location")
-    @Mapping(target = "fishType", source = "dto.fishType")
-    @Mapping(target = "fishSize", source = "dto.fishSize")
-    @Mapping(target = "lat", source = "dto.lat")
-    @Mapping(target = "lon", source = "dto.lon")
-    Posts toEntity(PostsDto dto);
+    // Set<Image> -> List<ImageDto>으로 변환하는 메서드
+    default List<ImageDto> mapToImageDtoList(Set<PostImage> postImages, long postId) {
+        if (postImages == null) return new ArrayList<>();
+        String postImagePath = UploadPaths.POST.getPath() + postId + "/";
 
-    // List<String> -> Set<Hashtag>으로 변환하는 메서드
-    default Set<Hashtag> mapToHashtagSet(List<String> hashtags) {
-        if (hashtags == null) return new HashSet<>();
-        return hashtags.stream()
-                .map(Hashtag::new)  // String을 Hashtag 객체로 변환
-                .collect(Collectors.toSet());
+        return postImages.stream()
+                .map(postImage -> new ImageDto(postImage.getId(), postImagePath + postImage.getImageName()))
+                .collect(Collectors.toList());
     }
+
 }

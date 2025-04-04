@@ -22,7 +22,7 @@ public class Hashtag {
     @Column(nullable = false, unique = true)
     private String name;
 
-    @ManyToMany(mappedBy = "hashTag")
+    @ManyToMany(mappedBy = "hashtag")
     @Builder.Default
     private Set<Posts> posts = new HashSet<>();
 
@@ -30,6 +30,7 @@ public class Hashtag {
     // id는 필요 없으므로 name만 받는 생성자 필요
     public Hashtag(String name) {
         this.name = name;
+        this.posts = new HashSet<>();
     }
 
 }

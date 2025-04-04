@@ -1,6 +1,8 @@
 package com.fishgo.users.controller;
 
 import com.fishgo.common.response.ApiResponse;
+import com.fishgo.common.response.AuthResponse;
+import com.fishgo.common.util.JwtUtil;
 import com.fishgo.users.domain.Users;
 import com.fishgo.users.dto.LoginRequestDto;
 import com.fishgo.users.dto.SignupRequestDto;
@@ -46,6 +48,7 @@ public class AuthController {
         }
 
         usersService.registerUser(usersDto);
+
         ApiResponse<String> response = new ApiResponse<>("회원가입이 성공적으로 완료되었습니다.", HttpStatus.OK.value());
         return ResponseEntity.ok(response);
 

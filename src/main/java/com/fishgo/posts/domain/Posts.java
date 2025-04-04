@@ -4,13 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fishgo.users.domain.Users;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
@@ -31,6 +27,16 @@ public class Posts {
     @JoinColumn(name = "user_id", nullable = false)
     private Users users;
 
+    @Column(nullable = false)
+    private String title;
+
+    @Column(columnDefinition = "TEXT")
+    private String contents;
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<PostImage> images = new HashSet<>();
+
     @ManyToMany
     @JoinTable(
             name = "post_hashtag",
@@ -38,27 +44,18 @@ public class Posts {
             inverseJoinColumns = @JoinColumn(name = "hashtag_id")
     )
     @Builder.Default
-    private Set<Hashtag> hashTag = new HashSet<>();
+    private Set<Hashtag> hashtag = new HashSet<>();
 
-    @Column(nullable = false, length = 255)
-    private String title;
+    @Column(name = "like_count", nullable = false)
+    private int likeCount;
 
-    @Column(columnDefinition = "TEXT")
-    private String contents;
+    @Column(name = "view_count", nullable = false)
+    private int viewCount;
 
-    @Column(columnDefinition = "TEXT")
-    private String img;
-
-    @Column(name = "like_count", nullable = false, columnDefinition = "INT DEFAULT 0")
-    private Integer likeCount;
-
-    @Column(name = "view_count", nullable = false, columnDefinition = "INT DEFAULT 0")
-    private Integer viewCount;
-
-    @Column(length = 255)
+    @Column
     private String location;
 
-    @Column(length = 255)
+    @Column
     private String fishType;
 
     @Column(name = "fish_size")
@@ -71,6 +68,10 @@ public class Posts {
     private Double lon;
 
     private LocalDateTime createdAt;
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<PostsLike> likes = new HashSet<>();
 
     @PrePersist
     public void prePersist() {
@@ -86,9 +87,30 @@ public class Posts {
     private Boolean isModify;
 
 //    @OneToMany(mappedBy = "posts", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<Comment> comments;
-//
-//    @OneToMany(mappedBy = "posts", cascade = CascadeType.ALL, orphanRemoval = true)
 //    private List<Pinpoint> pinpoints;
 
+    // 연관관계 메서드
+    public void addImage(PostImage postImage) {
+        this.images.add(postImage);
+        postImage.setPost(this);
+    }
+
+    public void removeImage(PostImage postImage) {
+        this.images.remove(postImage);
+        postImage.setPost(null);
+    }
+
+    public void addHashtag(Hashtag hashtag) {
+        this.hashtag.add(hashtag);
+        hashtag.getPosts().add(this);
+    }
+
+    public void removeHashtag(Hashtag hashtag) {
+        this.hashtag.remove(hashtag);
+        hashtag.getPosts().remove(this);
+    }
+
+    public void increaseViewCount() {
+        this.viewCount++;
+    }
 }
