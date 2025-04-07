@@ -2,6 +2,7 @@ package com.fishgo.users.service;
 
 import com.fishgo.common.constants.ErrorCode;
 import com.fishgo.common.constants.JwtProperties;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fishgo.common.constants.UploadPaths;
 import com.fishgo.common.exception.CustomException;
 import com.fishgo.common.service.ImageService;
@@ -17,6 +18,7 @@ import com.fishgo.users.dto.*;
 import com.fishgo.users.dto.mapper.UserMapper;
 import com.fishgo.users.repository.ProfileRepository;
 import com.fishgo.users.repository.UsersRepository;
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +48,8 @@ public class UsersService {
     private final ProfileRepository profileRepository;
     private final RedisTemplate<String, String> redisTemplate;
 
+    private final EmailVerService emailVerificationService;
+    private final EmailService emailService;
 
     /**
      * 회원가입 처리 및 프로필 디렉토리 생성
@@ -53,9 +57,27 @@ public class UsersService {
      * @throws FileSystemException 프로필 디렉토리 생성 실패시 예외 던지기
      */
     @Transactional
-    public Users registerUser(SignupRequestDto usersDto) throws FileSystemException {
+    public void registerUser(SignupRequestDto usersDto) throws FileSystemException, MessagingException, JsonProcessingException {
         if(usersRepository.existsByEmail(usersDto.getEmail())){
             throw new IllegalArgumentException("이미 존재하는 아이디입니다.");
+        }
+
+        // 이메일 인증 코드 생성 및 저장
+        String verificationCode = emailVerificationService.generateVerificationCode(usersDto.getEmail());
+
+        // 이메일 전송
+        emailService.sendVerificationEmail(usersDto.getEmail(), verificationCode);
+
+        // 사용자 정보를 임시 저장
+        emailVerificationService.saveUserInfo(usersDto.getEmail(), usersDto);
+
+    }
+
+    @Transactional
+    public Users registerSocialUser(SignupRequestDto signupRequestDto) throws FileSystemException {
+        if(usersRepository.existsByEmail(signupRequestDto.getEmail())){
+            return usersRepository.findByEmail(signupRequestDto.getEmail())
+                    .orElseThrow(() -> new IllegalArgumentException("사용자 조회 오류"));
         }
 
         // 초기 랜덤 닉네임 생성
@@ -68,32 +90,83 @@ public class UsersService {
         }
 
         // 패스워드 암호화
-        String encodedPassword;
-        if(usersDto.getSocialInfo() != null){ // 소셜 유저의 경우 비밀번호가 따로 없기 때문에 그냥 넘김.
-            encodedPassword = usersDto.getPassword();
-        } else {
-            encodedPassword = passwordEncoder.encode(usersDto.getPassword());
-        }
+        String encodedPassword = passwordEncoder.encode(signupRequestDto.getPassword());
 
         Profile profile = Profile.builder()
-                    .name(randomName)
-                    .build();
+                .name(randomName)
+                .build();
 
         Users user = Users.builder()
-                .email(usersDto.getEmail())
+                .email(signupRequestDto.getEmail())
                 .password(encodedPassword)
                 .role("USER")
-                .socialLoginInfo(usersDto.getSocialInfo())
+                .socialLoginInfo(signupRequestDto.getSocialInfo())
                 .build();
 
         user.addProfile(profile);
 
         // DB 저장
         Users saveUser = usersRepository.save(user);
+
         // 프로필 디렉토리 생성
         createUserDir(saveUser.getId());
 
         return saveUser;
+    }
+
+    public boolean verifyEmail(String email, String code) throws JsonProcessingException, FileSystemException {
+        boolean isVerified = emailVerificationService.verifyCode(email, code);
+        if (isVerified) {
+            // 임시 저장된 사용자 정보를 가져와서 데이터베이스에 저장
+            SignupRequestDto usersDto = emailVerificationService.getUserInfo(email);
+            // 초기 랜덤 닉네임 생성
+            String randomName = NicknameGenerator.generateNickname();
+            boolean isNicknameUsed = usersRepository.existsByProfile_Name(randomName);
+
+            while(isNicknameUsed){
+                randomName = NicknameGenerator.generateNickname();
+                isNicknameUsed = usersRepository.existsByProfile_Name(randomName);
+            }
+
+            // 패스워드 암호화
+            String encodedPassword = passwordEncoder.encode(usersDto.getPassword());
+
+            Profile profile = Profile.builder()
+                    .name(randomName)
+                    .build();
+
+            Users user = Users.builder()
+                    .email(usersDto.getEmail())
+                    .password(encodedPassword)
+                    .role("USER")
+                    .build();
+
+            user.addProfile(profile);
+
+            // DB 저장
+            Users saveUser = usersRepository.save(user);
+            // 프로필 디렉토리 생성
+            createUserDir(saveUser.getId());
+
+            // 임시 저장된 사용자 정보 삭제
+            emailVerificationService.deleteUserInfo(email);
+
+            // 인증 코드 삭제
+            emailVerificationService.deleteVerificationCode(email);
+
+        }
+        return isVerified;
+    }
+
+    public void resendVerificationCode(String email) throws MessagingException, JsonProcessingException {
+        // 이메일 유효성 검사 (간단한 패턴 체크)
+        if (!email.matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
+            throw new IllegalArgumentException("유효하지 않은 이메일 형식입니다.");
+        }
+        // 인증 코드 재생성
+        String newVerificationCode = emailVerificationService.regenerateVerifyCode(email);
+        // 이메일 전송
+        emailService.sendVerificationEmail(email, newVerificationCode);
     }
 
     public UserResponseDto loginUser(LoginRequestDto usersDto, HttpServletResponse response) {
@@ -150,7 +223,7 @@ public class UsersService {
 
     public void refreshToken(HttpServletResponse response, String refreshToken) {
         if(jwtUtil.isRefreshBlacklisted(refreshToken)) {
-           throw new CustomException(ErrorCode.BLACKLISTED_TOKEN.getCode(), "블랙리스트 처리된 토큰입니다.");
+            throw new CustomException(ErrorCode.BLACKLISTED_TOKEN.getCode(), "블랙리스트 처리된 토큰입니다.");
         }
 
         long userId = jwtUtil.extractUserId(refreshToken);
