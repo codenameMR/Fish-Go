@@ -167,7 +167,7 @@ public class UsersService {
     }
 
     private void createUserDir(long userId) throws FileSystemException {
-        String userDirectory = UploadPaths.PROFILE.getPath() + userId + "/";
+        String userDirectory = UploadPaths.PROFILE_ABSOLUTE.getPath() + userId + "/";
         boolean wasMkdirSuccessful = new File(userDirectory).mkdirs();
 
         if(!wasMkdirSuccessful){

@@ -67,7 +67,7 @@ public class ImageService {
      * @return 업로드 된 파일 이름
      */
     public String uploadPostImage(MultipartFile file, long postId) throws FileSystemException {
-        String postDirectory = UploadPaths.POST.getPath() + postId;
+        String postDirectory = UploadPaths.POST_ABSOLUTE.getPath() + postId;
         // 디렉토리가 없으면 생성
         File directory = new File(postDirectory);
         if (!directory.exists()) {
@@ -87,7 +87,7 @@ public class ImageService {
      * @return 업로드 된 파일 이름
      */
     public String uploadProfileImage(MultipartFile file, long userId) {
-        String userDirectory = UploadPaths.PROFILE.getPath() + userId + "/"; // uploads/profile/{userId}/
+        String userDirectory = UploadPaths.PROFILE_ABSOLUTE.getPath() + userId + "/"; // uploads/profile/{userId}/
         // 기존 프로필 이미지
         String oldFileName = profileRepository.findProfileImgByUserId(userId);
 

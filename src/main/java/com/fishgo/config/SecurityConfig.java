@@ -39,9 +39,10 @@ public class SecurityConfig {
             // 회원가입, 로그인(카카오 포함), 게시글 목록, 게시글 상세, 댓글 목록, 조석 예보, Swagger 관련 요청을 제외한 모든 요청은 권한 필요.
             .authorizeHttpRequests((authorizeRequests) ->
                     authorizeRequests.requestMatchers("/api/auth/register", "/api/auth/login","/swagger-ui/**",
-                                    "/api/swagger-ui.html", "/api/v3/api-docs/**", "/api/auth/kakao/callback", "/favicon.ico").permitAll()
+                                    "/api/swagger-ui.html", "/api/v3/api-docs/**", "/api/auth/kakao/callback").permitAll()
                             .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/{postId}", "/api/comment",
-                                    "/api/auth/kakao", "/api/tide/{obsCode}", "/api/map").permitAll()
+                                    "/api/auth/kakao", "/api/tide/{obsCode}", "/api/map", "/uploads/**",
+                                    "/favicon.ico").permitAll()
                             .anyRequest().authenticated()
             )
             // 권한이 없는 요청이 들어왔을 때 동작할 AuthenticationEntryPoint

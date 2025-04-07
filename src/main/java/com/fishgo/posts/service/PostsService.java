@@ -99,6 +99,8 @@ public class PostsService {
                 // DB 저장
                 post.addImage(new PostImage(savedFileName));
             }
+            // 이미지 id를 가져오기 위해 flush 처리
+            postsRepository.flush();
         }
 
         return postsMapper.toDto(post).getImages();
@@ -121,7 +123,7 @@ public class PostsService {
                 .collect(Collectors.toSet());
 
         // 제거 처리
-        String postPath = UploadPaths.POST.getPath();
+        String postPath = UploadPaths.POST_ABSOLUTE.getPath();
         for (PostImage postImage : toRemove) {
             post.removeImage(postImage); // orphanRemoval로 인해 DB에서도 자동 삭제
             imageService.deleteOldImage(postPath + postImage.getImageName()); // 실제 파일 삭제
@@ -233,6 +235,7 @@ public class PostsService {
     private Set<Hashtag> processHashtags(List<String> hashtags) {
         Set<Hashtag> verifiedHashtags = new HashSet<>();
 
+        if(hashtags != null && !hashtags.isEmpty()){
             for (String tag : hashtags) {
 
                 Hashtag existingHashtag = hashtagRepository.findByName(tag);
@@ -244,6 +247,8 @@ public class PostsService {
                 }
                 verifiedHashtags.add(existingHashtag);
             }
+
+        }
         return verifiedHashtags;
     }
 

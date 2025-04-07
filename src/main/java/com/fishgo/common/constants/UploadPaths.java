@@ -5,8 +5,10 @@ import lombok.Getter;
 @Getter
 public enum UploadPaths {
     ROOT(System.getProperty("user.dir") + "/uploads/"),
-    PROFILE(ROOT.getPath() + "profile/"),
-    POST(ROOT.getPath() + "posts/"),
+    PROFILE_ABSOLUTE(ROOT.getPath() + "profile/"),
+    POST_ABSOLUTE(ROOT.getPath() + "posts/"),
+    PROFILE_RELATIVE("/uploads/profile/"),
+    POST_RELATIVE("/uploads/posts/"),
     TEMP(ROOT.getPath() + "temp/");
 
     private final String path;

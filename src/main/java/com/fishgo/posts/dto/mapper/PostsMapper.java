@@ -123,7 +123,7 @@ public interface PostsMapper {
     // Set<Image> -> List<ImageDto>으로 변환하는 메서드
     default List<ImageDto> mapToImageDtoList(Set<PostImage> postImages, long postId) {
         if (postImages == null) return new ArrayList<>();
-        String postImagePath = UploadPaths.POST.getPath() + postId + "/";
+        String postImagePath = UploadPaths.POST_RELATIVE.getPath() + postId + "/";
 
         return postImages.stream()
                 .map(postImage -> new ImageDto(postImage.getId(), postImagePath + postImage.getImageName()))
