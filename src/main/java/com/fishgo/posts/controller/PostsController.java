@@ -1,5 +1,6 @@
 package com.fishgo.posts.controller;
 
+import com.fishgo.common.constants.ErrorCode;
 import com.fishgo.common.exception.CustomException;
 import com.fishgo.common.response.ApiResponse;
 import com.fishgo.posts.domain.Posts;
@@ -78,16 +79,20 @@ public class PostsController {
                                                                    @AuthenticationPrincipal Users currentUser) throws FileSystemException {
 
         List<ImageDto> imageList = null;
+        // 업로드할 이미지가 있으면 업로드 처리
         if(images != null && !images.isEmpty()){
             imageList = postsService.uploadImages(postId, images, currentUser);
         }
 
+        // 삭제할 이미지가 있으면 삭제 처리
         if(deleteImageIds != null && !deleteImageIds.isEmpty()) {
             imageList = postsService.deleteImages(postId, deleteImageIds, currentUser);
         }
 
+        // 아무 작업도 수행하지 않은경우 400
         if(imageList == null) {
-            throw new CustomException(999999, "업로드 및 삭제 할 이미지가 없습니다.");
+            throw new CustomException(ErrorCode.BAD_REQUEST.getCode(),
+                    "업로드 하거나 삭제할 이미지를 지정 해주세요.");
         }
 
         return ResponseEntity.ok(new ApiResponse<>("이미지 업로드 및 수정에 성공 했습니다.",
@@ -134,7 +139,7 @@ public class PostsController {
         String redisUserKey = currentUser != null ?
                 String.valueOf(currentUser.getId()) : request.getRemoteAddr();
 
-        PostsDto postDetail = postsService.getPostDetail(postId, redisUserKey);
+        PostsDto postDetail = postsService.getPostDetail(postId, redisUserKey, currentUser);
         ApiResponse<PostsDto> response = new ApiResponse<>(
                 "게시물 조회 성공",
                 HttpStatus.OK.value(),

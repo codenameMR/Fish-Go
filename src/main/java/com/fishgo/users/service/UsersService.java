@@ -23,6 +23,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,9 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 @Slf4j
 public class UsersService {
+
+    @Value("${user.upload.path}")
+    String uploadPath;
 
     private final JwtUtil jwtUtil;
     private final UsersRepository usersRepository;
@@ -240,7 +244,7 @@ public class UsersService {
     }
 
     private void createUserDir(long userId) throws FileSystemException {
-        String userDirectory = UploadPaths.PROFILE_ABSOLUTE.getPath() + userId + "/";
+        String userDirectory = uploadPath + UploadPaths.PROFILE.getPath() + userId + "/";
         boolean wasMkdirSuccessful = new File(userDirectory).mkdirs();
 
         if(!wasMkdirSuccessful){
@@ -273,6 +277,7 @@ public class UsersService {
         long totalLikeCount = postLikeCount + commentLikeCount;
 
         return new UserStatsDto(
+                currentUser.getId(),
                 currentUser.getProfile().getName(),
                 currentUser.getProfile().getProfileImg(),
                 postStats.getPostCount(),

@@ -4,15 +4,15 @@ import com.fishgo.common.constants.UploadPaths;
 
 public class ImagePathHelper {
 
-    public static String buildProfileImagePath(String profileImageName) {
+    public static String buildProfileImagePath(String profileImageName, long userId) {
         if(profileImageName == null) return null;
 
-        return UploadPaths.PROFILE_RELATIVE.getPath() + profileImageName;
+        return UploadPaths.UPLOAD_PROFILE.getPath() + userId + "/" + profileImageName;
     }
 
     public static String buildPostImagePath(String postImageName, long postId) {
         if(postImageName == null) return null;
 
-        return UploadPaths.POST_RELATIVE.getPath() + postId + "/" + postImageName;
+        return UploadPaths.UPLOAD_POSTS.getPath() + postId + "/" + postImageName;
     }
 }

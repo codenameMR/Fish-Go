@@ -1,5 +1,6 @@
 package com.fishgo.posts.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fishgo.common.util.ImagePathHelper;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
@@ -16,6 +17,9 @@ public class PostListResponseDto {
 
     private String userProfileImg;
 
+    @JsonIgnore
+    private long userId;
+
     private String userName;
 
     private String title;
@@ -31,7 +35,7 @@ public class PostListResponseDto {
     private LocalDateTime createdAt;
 
     public void setUserProfileImg(String profileImg) {
-        this.userProfileImg = ImagePathHelper.buildProfileImagePath(profileImg);
+        this.userProfileImg = ImagePathHelper.buildProfileImagePath(profileImg, userId);
     }
 
     public void setThumbnail(String thumbnail) {

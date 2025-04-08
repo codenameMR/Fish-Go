@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -56,7 +57,7 @@ public class KakaoAuthController {
      */
     @Hidden
     @GetMapping("/callback")
-    public ApiResponse<String> kakaoCallback(
+    public ResponseEntity<ApiResponse<String>> kakaoCallback(
             HttpServletResponse response,
             @RequestParam(value = "code", required = false) String authorizationCode,
             @RequestParam(value = "error_description", required = false) String errorDesc,
@@ -64,7 +65,7 @@ public class KakaoAuthController {
     ) throws FileSystemException {
         // 서비스에서 처리한 다음, 최종 메시지(또는 필요한 DTO 등)을 반환
         String resultMessage = kakaoAuthService.processKakaoLogin(authorizationCode, errorDesc, errorCode, response);
-        return new ApiResponse<>(resultMessage, HttpStatus.OK.value());
+        return ResponseEntity.ok(new ApiResponse<>(resultMessage, HttpStatus.OK.value()));
     }
 
 

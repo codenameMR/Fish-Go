@@ -33,6 +33,7 @@ public interface CommentMapper {
      * 응답에 필요한 필드만 매핑합니다.
      */
     @Mapping(target = "id", source = "comment.id")
+    @Mapping(target = "userId", source = "comment.user.id")
     @Mapping(target = "name", source = "comment.user.profile.name")
     @Mapping(target = "profileImg", source = "comment.user.profile.profileImg")
     @Mapping(target = "contents", source = "comment.contents")

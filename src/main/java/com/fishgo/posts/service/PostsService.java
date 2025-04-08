@@ -15,6 +15,7 @@ import com.fishgo.posts.respository.PostsLikeRepository;
 import com.fishgo.posts.respository.PostsRepository;
 import com.fishgo.users.domain.Users;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class PostsService {
+
+    @Value("${user.upload.path}")
+    String uploadPath;
 
     private final PostsRepository postsRepository;
     private final HashtagRepository hashtagRepository;
@@ -123,7 +127,7 @@ public class PostsService {
                 .collect(Collectors.toSet());
 
         // 제거 처리
-        String postPath = UploadPaths.POST_ABSOLUTE.getPath();
+        String postPath = uploadPath + UploadPaths.POST.getPath() + post.getId() + "/";
         for (PostImage postImage : toRemove) {
             post.removeImage(postImage); // orphanRemoval로 인해 DB에서도 자동 삭제
             imageService.deleteOldImage(postPath + postImage.getImageName()); // 실제 파일 삭제
@@ -212,7 +216,7 @@ public class PostsService {
      * @param redisUserKey 현재 접속한 유저 아이디 혹은 아이피
      * @return PostDTO 객체
      */
-    public PostsDto getPostDetail(Long postId, String redisUserKey) {
+    public PostsDto getPostDetail(Long postId, String redisUserKey, Users currentUser) {
         Posts post = findById(postId);
 
         // Redis 조회 키 생성
@@ -227,9 +231,16 @@ public class PostsService {
             // Redis에 저장 + 만료 시간(4시간) 설정
             redisService.setWithExpire(redisKey, true, 4, TimeUnit.HOURS);
         }
-
         // 게시물을 DTO로 변환하여 반환
-        return postsMapper.toDto(post);
+        PostsDto postDto = postsMapper.toDto(post);
+
+        if(currentUser != null){
+            boolean liked = postsLikeRepository.existsByPostIdAndUserId(postId, currentUser.getId());
+            postDto.setLiked(liked);
+        }
+
+
+        return postDto;
     }
 
     private Set<Hashtag> processHashtags(List<String> hashtags) {

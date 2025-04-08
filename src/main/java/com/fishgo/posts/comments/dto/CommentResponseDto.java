@@ -1,5 +1,6 @@
 package com.fishgo.posts.comments.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fishgo.common.util.ImagePathHelper;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
@@ -14,6 +15,9 @@ public class CommentResponseDto {
 
     @Schema(description = "댓글 고유 ID")
     private Long id;
+
+    @JsonIgnore
+    private long userId;
 
     @Schema(description = "작성자 이름")
     private String name;
@@ -40,6 +44,6 @@ public class CommentResponseDto {
     private List<CommentResponseDto> replies;
 
     public void setProfileImg(String profileImg) {
-        this.profileImg = ImagePathHelper.buildProfileImagePath(profileImg);
+        this.profileImg = ImagePathHelper.buildProfileImagePath(profileImg, userId);
     }
 }

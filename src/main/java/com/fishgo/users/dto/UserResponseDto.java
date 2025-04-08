@@ -1,5 +1,6 @@
 package com.fishgo.users.dto;
 
+import com.fishgo.common.util.ImagePathHelper;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -27,4 +28,7 @@ public class UserResponseDto {
     @Schema(description = "사용자 프로필 이미지")
     private String profileImg;
 
+    public void setProfileImg(String profileImg) {
+        this.profileImg = ImagePathHelper.buildProfileImagePath(profileImg, id);
+    }
 }

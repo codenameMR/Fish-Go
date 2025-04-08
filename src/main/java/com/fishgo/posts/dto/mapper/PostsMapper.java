@@ -17,6 +17,7 @@ public interface PostsMapper {
 
     // Posts -> PostResponseDto 변환
     @Mapping(target = "id", source = "posts.id")
+    @Mapping(target = "userId", source = "posts.users.id")
     @Mapping(target = "userName", source = "posts.users.profile.name")
     @Mapping(target = "userProfileImg", source = "posts.users.profile.profileImg")
     @Mapping(target = "title", source = "posts.title")
@@ -37,6 +38,8 @@ public interface PostsMapper {
         );
     }
 
+    @Mapping(target = "userId", source = "post.users.id")
+    @Mapping(target = "userProfileImg", source = "post.users.profile.profileImg")
     @Mapping(target = "userName", source = "post.users.profile.name")
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "isModify", source = "isModify")
@@ -51,9 +54,12 @@ public interface PostsMapper {
     @Mapping(target = "fishSize", source = "fishSize")
     @Mapping(target = "lat", source = "lat")
     @Mapping(target = "lon", source = "lon")
+    @Mapping(target = "liked", ignore = true)
     PostsDto toDtoWithoutImage(Posts post);
 
     @Mapping(target = "userName", source = "post.users.profile.name")
+    @Mapping(target = "userId", source = "post.users.id")
+    @Mapping(target = "userProfileImg", source = "post.users.profile.profileImg")
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "isModify", source = "isModify")
     @Mapping(target = "hashtag", source = "post.hashtag")  // Set<Hashtag>을 List<String>으로 매핑
@@ -67,6 +73,7 @@ public interface PostsMapper {
     @Mapping(target = "fishSize", source = "fishSize")
     @Mapping(target = "lat", source = "lat")
     @Mapping(target = "lon", source = "lon")
+    @Mapping(target = "liked", ignore = true)
     PostsDto toDto(Posts post);
 
     @Mapping(target = "users", ignore = true)
@@ -123,7 +130,7 @@ public interface PostsMapper {
     // Set<Image> -> List<ImageDto>으로 변환하는 메서드
     default List<ImageDto> mapToImageDtoList(Set<PostImage> postImages, long postId) {
         if (postImages == null) return new ArrayList<>();
-        String postImagePath = UploadPaths.POST_RELATIVE.getPath() + postId + "/";
+        String postImagePath = UploadPaths.UPLOAD_POSTS.getPath() + postId + "/";
 
         return postImages.stream()
                 .map(postImage -> new ImageDto(postImage.getId(), postImagePath + postImage.getImageName()))
