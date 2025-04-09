@@ -16,7 +16,7 @@ public class UserResponseDto {
     @Schema(description = "사용자의 고유 아이디 (이메일 형식)", example = "test@naver.com")
     private String email;
 
-    @Schema(description = "사용자 이름", example = "홍길동")
+    @Schema(description = "사용자 이름", example = "고등어#1234")
     private String name;
 
     @Schema(description = "소셜 로그인 정보")

@@ -8,6 +8,7 @@ import com.fishgo.common.util.JwtUtil;
 import com.fishgo.users.domain.Users;
 import com.fishgo.users.dto.JwtRequestDto;
 import com.fishgo.users.dto.SignupRequestDto;
+import com.fishgo.users.dto.UserResponseDto;
 import com.fishgo.users.dto.mapper.UserMapper;
 import com.fishgo.users.repository.UsersRepository;
 import jakarta.servlet.http.HttpServletResponse;
@@ -49,14 +50,8 @@ public class KakaoAuthService {
      * 3) 사용자 정보 확인/등록
      * 4) JWT 토큰 생성 및 쿠키 설정
      */
-    public String processKakaoLogin(String authorizationCode,
-                                    String errorDesc,
-                                    String errorCode,
-                                    HttpServletResponse response) throws FileSystemException {
-        if (errorCode != null) {
-            // 카카오 측에서 에러를 보냈다면 예외 처리
-            throw new CustomException(ErrorCode.KAKAO_LOGIN_FAILED.getCode(), "카카오 로그인 실패 : " + errorDesc);
-        }
+    public UserResponseDto processKakaoLogin(String authorizationCode,
+                                             HttpServletResponse response) throws FileSystemException {
 
         // 카카오에서 받은 인가코드로 AccessToken 발급
         Map<String, Object> tokenInfo = requestAccessToken(authorizationCode);
@@ -103,7 +98,7 @@ public class KakaoAuthService {
         response.addCookie(usersService.registerToken("accessToken", accessToken));
 
         // 최종 메시지
-        return "카카오 로그인이 성공적으로 완료되었습니다.";
+        return userMapper.toUserResponseDto(user);
     }
 
     /**
