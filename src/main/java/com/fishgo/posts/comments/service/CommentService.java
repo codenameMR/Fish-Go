@@ -1,10 +1,10 @@
 package com.fishgo.posts.comments.service;
 
+import com.fishgo.common.service.PageService;
 import com.fishgo.posts.comments.domain.Comment;
-import com.fishgo.posts.comments.dto.CommentCreateRequestDto;
-import com.fishgo.posts.comments.dto.CommentResponseDto;
-import com.fishgo.posts.comments.dto.CommentUpdateRequestDto;
+import com.fishgo.posts.comments.dto.*;
 import com.fishgo.posts.comments.dto.mapper.CommentMapper;
+import com.fishgo.posts.comments.dto.projection.ParentCommentProjection;
 import com.fishgo.posts.comments.repository.CommentLikeRepository;
 import com.fishgo.posts.comments.repository.CommentRepository;
 import com.fishgo.posts.domain.Posts;
@@ -17,8 +17,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -26,52 +24,82 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final UsersService usersService;
+    private final PageService pageService;
     private final PostsService postsService;
     private final CommentMapper commentMapper;
     private final CommentLikeRepository commentLikeRepository;
 
     /**
-     *  댓글 조회
+     * 댓글 및 해당 댓글의 첫번째 댓글, 그리고 남은 대댓글 개수를 반환한다.
      * @param postId 게시글 아이디
-     * @param pageable 페이지네이션 객체
-     * @param currentUser 현재 접속 중인 유저
-     * @return 페이지네이션 된 댓글 응답 객체
+     * @param pageable 페이지에이블 객체
+     * @param currentUser 현재 접속 중인 유저 객체
+     * @return 페이지에이블 객체
      */
-    @Transactional
-    public Page<CommentResponseDto> getCommentsByPostId(Long postId, Pageable pageable, Users currentUser) {
+    @Transactional(readOnly = true)
+    public Page<CommentResponseDto> getParentCommentsWithFirstReply(Long postId, Pageable pageable, Users currentUser) {
 
-        // 1) 부모만 우선 페이징 조회
-        Page<Comment> commentPage = commentRepository.findByPostIdWithoutReplies(postId, pageable);
-        // 2) 페이징된 부모 목록 추출
-        List<Comment> parentComments = commentPage.getContent();
-        if (parentComments.isEmpty()) {
-            // 부모가 없으면 굳이 자식 로딩 쿼리 불필요
-            return commentPage.map(commentMapper::toResponse);
+        // 1) Projection으로 조회
+        Page<ParentCommentProjection> projectionPage =
+                commentRepository.findParentCommentsWithFirstReply(postId, pageable);
+
+        // 2) Projection -> DTO 변환
+        Page<CommentResponseDto> dtoPage = projectionPage.map(projection -> {
+
+            // 2-1) 부모 댓글 기본 정보 셋팅
+            CommentResponseDto parentDto = commentMapper.projectionToResponse(projection);
+
+            // 남은 대댓글 수
+            parentDto.setRemainingReplyCount(
+                    projection.getRemainingReplyCount() == null ? 0 : projection.getRemainingReplyCount()
+            );
+
+            // 2-2) 첫 번째 대댓글이 있는 경우, 실제 댓글 엔티티를 다시 조회해 Mapper로 변환
+            if (projection.getFirstReplyId() != null) {
+                Comment firstReply = commentRepository.findById(projection.getFirstReplyId())
+                        .orElse(null);
+                if (firstReply != null) {
+                    ReplyResponseDto replyDto = commentMapper.toReplyResponse(firstReply);
+                    parentDto.setFirstReply(replyDto);
+                }
+            }
+
+            return parentDto;
+        });
+
+        // 3) 좋아요 여부
+        if(currentUser != null){
+            fillLikeStatusRecursively(dtoPage, currentUser.getId());
         }
 
-        // 3) 부모 IDs 추출
-        List<Long> commentIds = parentComments
-                .stream()
-                .map(Comment::getId)
-                .toList();
-
-        // 4) 자식까지 fetch join
-        // DB에서 조회된 엔티티의 식별자(Primary Key)가 같으면, 같은 레코드를 가리키는 엔티티이므로
-        // JPA 영속성 컨텍스트 입장에서는 동일한 엔티티 객체로 인식되기 때문에
-        // 이 때 commentPage 객체가 자식을 가진 상태로 업데이트 됨.
-        commentRepository.findCommentsWithReplies(commentIds);
-
-        // 5) 매퍼로 DTO 변환
-        Page<CommentResponseDto> responses = commentPage.map(commentMapper::toResponse);
-
-        // 6) 댓글 좋아요 여부 재귀함수
-        if(currentUser != null) {
-            fillLikeStatusRecursively(responses, currentUser.getId());
-        }
-
-        return responses;
-
+        return dtoPage;
     }
+
+    /**
+     * 특정 댓글(parentId)의 대댓글"만 별도로 페이지네이션하는 메서드.
+     * @param parentId 부모 댓글 아이디
+     * @param pageable 페이지에이블 객체
+     * @return 페이지에이블 객체
+     */
+    @Transactional(readOnly = true)
+    public RepliesResponseDto getReplies(Long parentId, Pageable pageable, Users currentUser) {
+        Page<Comment> replies = commentRepository.findAllByParentId(parentId, pageable);
+
+        long remainingRepiesCount = pageService.getRemainingCount(replies);
+
+        Page<ReplyResponseDto> replyDtoPage = replies.map(commentMapper::toReplyResponse);
+
+        if(currentUser != null) {
+            fillLikeStatusForReplies(replyDtoPage, currentUser.getId());
+        }
+
+
+        return RepliesResponseDto.builder()
+                .replies(replyDtoPage)
+                .remainingRepliesCount(remainingRepiesCount)
+                .build();
+    }
+
 
     /**
      * 댓글 작성
@@ -153,23 +181,24 @@ public class CommentService {
             resp.setLiked(liked);
 
             // 자식 댓글이 있다면 재귀적으로 처리
-            if (resp.getReplies() != null && !resp.getReplies().isEmpty()) {
-                fillLikeStatusRecursively(resp.getReplies(), userId);
+            if (resp.getFirstReply() != null) {
+                fillLikeStatusRecursively(resp.getFirstReply(), userId);
             }
         }
     }
 
-    // 댓글 좋아요 여부 판별 오버로딩
-    private void fillLikeStatusRecursively(List<CommentResponseDto> list, Long userId) {
-        for (CommentResponseDto resp : list) {
+    private void fillLikeStatusForReplies(Page<ReplyResponseDto> list, Long userId) {
+        for (ReplyResponseDto resp : list) {
             boolean liked = commentLikeRepository.existsByCommentIdAndUserId(resp.getId(), userId);
             resp.setLiked(liked);
 
-            // 자식의 자식 댓글이 또 List이면 동일하게 재귀
-            if (resp.getReplies() != null && !resp.getReplies().isEmpty()) {
-                fillLikeStatusRecursively(resp.getReplies(), userId);
-            }
         }
+    }
+
+    private void fillLikeStatusRecursively(ReplyResponseDto dto, Long userId) {
+            boolean liked = commentLikeRepository.existsByCommentIdAndUserId(dto.getId(), userId);
+            dto.setLiked(liked);
+
     }
 
 }

@@ -1,9 +1,7 @@
 package com.fishgo.posts.comments.controller;
 
 import com.fishgo.common.response.ApiResponse;
-import com.fishgo.posts.comments.dto.CommentCreateRequestDto;
-import com.fishgo.posts.comments.dto.CommentResponseDto;
-import com.fishgo.posts.comments.dto.CommentUpdateRequestDto;
+import com.fishgo.posts.comments.dto.*;
 import com.fishgo.posts.comments.service.CommentLikeService;
 import com.fishgo.posts.comments.service.CommentService;
 import com.fishgo.users.domain.Users;
@@ -39,9 +37,24 @@ public class CommentController {
         // 페이지 번호(page), 조회 개수(size)로 PageRequest 생성
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
 
-        Page<CommentResponseDto> commentsDtoList = commentService.getCommentsByPostId(postId, pageable, currentUser);
+        Page<CommentResponseDto> commentsDtoList = commentService.getParentCommentsWithFirstReply(postId, pageable, currentUser);
 
         return ResponseEntity.ok(new ApiResponse<>("댓글 조회 성공", HttpStatus.OK.value(), commentsDtoList));
+    }
+
+    @Operation(summary = "대댓글 조회", description = "부모 댓글의 ID로 댓글을 조회합니다. 남은 대댓글 수(remainingRepliesCount)," +
+                                        " 대댓글 정보가 담긴 Page 객체를 반환합니다.")
+    @GetMapping("/reply")
+    public ResponseEntity<ApiResponse<RepliesResponseDto>> getReply(@RequestParam Long commentId,
+                                                                    @RequestParam(value = "page", defaultValue = "0") int page,
+                                                                    @RequestParam(value = "size", defaultValue = "10") int size,
+                                                                    @AuthenticationPrincipal Users currentUser) {
+        // 페이지 번호(page), 조회 개수(size)로 PageRequest 생성
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
+
+        RepliesResponseDto replies = commentService.getReplies(commentId, pageable, currentUser);
+
+        return ResponseEntity.ok(new ApiResponse<>("댓글 조회 성공", HttpStatus.OK.value(), replies));
     }
 
     @Operation(summary = "댓글 및 대댓글 작성", description = "게시글 ID, 댓글 내용, (대댓글인 경우 부모 댓글의 ID)로 댓글을 작성합니다.")

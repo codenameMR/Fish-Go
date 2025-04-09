@@ -41,7 +41,7 @@ public class SecurityConfig {
                     authorizeRequests.requestMatchers("/api/auth/register", "/api/auth/login","/swagger-ui/**",
                                     "/api/swagger-ui.html", "/api/v3/api-docs/**", "/api/auth/kakao/callback",
                                     "/api/auth/verify", "/api/auth/resendVerify").permitAll()
-                            .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/{postId}", "/api/comment",
+                            .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/{postId}", "/api/comment/**",
                                     "/api/auth/kakao", "/api/tide/{obsCode}", "/api/map", "/uploads/**",
                                     "/favicon.ico").permitAll()
                             .anyRequest().authenticated()
