@@ -40,9 +40,10 @@ public class KakaoAuthController {
     private String frontCallbackUrl;
 
     @GetMapping
-    @Operation(summary = "카카오 로그인", description = "카카오 로그인 페이지로 리다이렉트 합니다. \n " +
-            "로그인이 성공 할 경우, 프론트 콜백 경로로 유저 정보가 담긴 userData(Json)가 **Base64로 인코딩 된 채** 리다이렉트 됩니다.  \n" +
-            "로그인이 실패 할 경우, 같은 경로로 errorCode와 errorDesc가 리다이렉트 됩니다.")
+    @Operation(summary = "카카오 로그인", description = """
+            카카오 로그인 페이지로 리다이렉트 합니다. \s
+            로그인이 성공 할 경우, 프론트 콜백 성공 경로로 유저 정보가 담긴 userData(Json)가 **Base64로 인코딩 된 채** 리다이렉트 됩니다. \s
+            로그인이 실패 할 경우, 프론트 콜백 실패 경로로 errorCode와 errorDesc가 리다이렉트 됩니다.""")
     public void redirectToKakao(HttpServletResponse response) throws IOException {
         String encodedRedirectUri = URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
         String kakaoAuthUrl = "https://kauth.kakao.com/oauth/authorize?response_type=code"

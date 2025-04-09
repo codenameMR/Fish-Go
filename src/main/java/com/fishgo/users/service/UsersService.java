@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fishgo.common.constants.UploadPaths;
 import com.fishgo.common.exception.CustomException;
 import com.fishgo.common.service.ImageService;
+import com.fishgo.common.util.ImagePathHelper;
 import com.fishgo.common.util.JwtUtil;
 import com.fishgo.common.util.NicknameGenerator;
 import com.fishgo.posts.comments.dto.CommentStatsDto;
@@ -58,10 +59,9 @@ public class UsersService {
     /**
      * 회원가입 처리 및 프로필 디렉토리 생성
      * @param usersDto 회원가입 요청 객체
-     * @throws FileSystemException 프로필 디렉토리 생성 실패시 예외 던지기
      */
     @Transactional
-    public void registerUser(SignupRequestDto usersDto) throws FileSystemException, MessagingException, JsonProcessingException {
+    public void registerUser(SignupRequestDto usersDto) throws MessagingException, JsonProcessingException {
         if(usersRepository.existsByEmail(usersDto.getEmail())){
             throw new IllegalArgumentException("이미 존재하는 아이디입니다.");
         }
@@ -162,7 +162,7 @@ public class UsersService {
         return isVerified;
     }
 
-    public void resendVerificationCode(String email) throws MessagingException, JsonProcessingException {
+    public void resendVerificationCode(String email) throws MessagingException {
         // 이메일 유효성 검사 (간단한 패턴 체크)
         if (!email.matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
             throw new IllegalArgumentException("유효하지 않은 이메일 형식입니다.");
@@ -336,7 +336,7 @@ public class UsersService {
      * @param profileImg 변경할 프로필 이미지 파일
      */
     @Transactional
-    public void updateProfileImg(Users currentUser, MultipartFile profileImg) {
+    public String updateProfileImg(Users currentUser, MultipartFile profileImg) {
 
         if(!imageService.isImageFile(profileImg)){
             throw new IllegalArgumentException("이미지 형식이 아닙니다.");
@@ -346,6 +346,8 @@ public class UsersService {
         currentUser.getProfile().setProfileImg(profileImgName);
 
         usersRepository.save(currentUser);
+
+        return ImagePathHelper.buildProfileImagePath(profileImgName, currentUser.getId());
     }
 
     /**

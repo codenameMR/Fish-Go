@@ -71,8 +71,8 @@ public class UsersController {
     @Operation(summary = "프로필 이미지 변경", description = "사용자의 프로필 이미지를 변경합니다")
     @PutMapping("/profile-image")
     public ResponseEntity<ApiResponse<String>> updateProfileImage(@RequestParam MultipartFile image, @AuthenticationPrincipal Users user) {
-        usersService.updateProfileImg(user, image);
+        String newImagePath = usersService.updateProfileImg(user, image);
 
-        return ResponseEntity.ok(new ApiResponse<>("프로필 이미지 변경 성공", HttpStatus.OK.value()));
+        return ResponseEntity.ok(new ApiResponse<>("프로필 이미지 변경 성공", HttpStatus.OK.value(), newImagePath));
     }
 }
