@@ -13,9 +13,13 @@ import com.fishgo.users.domain.Users;
 import com.fishgo.users.service.UsersService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -85,9 +89,21 @@ public class CommentService {
     public RepliesResponseDto getReplies(Long parentId, Pageable pageable, Users currentUser) {
         Page<Comment> replies = commentRepository.findAllByParentId(parentId, pageable);
 
-        long remainingRepiesCount = pageService.getRemainingCount(replies);
+        long remainingRepliesCount = pageService.getRemainingCount(replies);
 
         Page<ReplyResponseDto> replyDtoPage = replies.map(commentMapper::toReplyResponse);
+
+        // 댓글 가져올 때 첫번째 대댓글을 같이 가져오므로
+        // 첫 페이지(0번)일 경우 첫 번째 대댓글 제거
+        if(pageable.getPageNumber() == 0 && !replyDtoPage.isEmpty()) {
+            // 기존 Page의 내용을 List로 복사
+            List<ReplyResponseDto> contentList = new ArrayList<>(replyDtoPage.getContent());
+            contentList.removeFirst(); // 첫 번째 댓글 제거
+
+            // 수정된 List를 다시 Page로 감싼다. totalElements는 기존과 동일하게 사용 가능
+            replyDtoPage = new PageImpl<>(contentList, pageable, replies.getTotalElements());
+        }
+
 
         if(currentUser != null) {
             fillLikeStatusForReplies(replyDtoPage, currentUser.getId());
@@ -96,7 +112,7 @@ public class CommentService {
 
         return RepliesResponseDto.builder()
                 .replies(replyDtoPage)
-                .remainingRepliesCount(remainingRepiesCount)
+                .remainingRepliesCount(remainingRepliesCount)
                 .build();
     }
 

@@ -1,6 +1,5 @@
 package com.fishgo.posts.comments.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fishgo.common.util.ImagePathHelper;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
@@ -15,7 +14,7 @@ public class CommentResponseDto {
     @Schema(description = "댓글 고유 ID")
     private Long id;
 
-    @JsonIgnore
+    @Schema(description = "사용자 아이디")
     private long userId;
 
     @Schema(description = "작성자 이름")

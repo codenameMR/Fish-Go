@@ -1,6 +1,5 @@
 package com.fishgo.posts.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fishgo.common.util.ImagePathHelper;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -19,7 +18,7 @@ public class PostsDto {
     @Schema(description = "게시글 아이디", example = "1")
     private Long id;
 
-    @JsonIgnore
+    @Schema(description = "사용자 아이디", example = "1")
     private Long userId;
 
     @Schema(description = "사용자 별명", example = "고등어#1234")
