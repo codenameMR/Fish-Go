@@ -84,21 +84,9 @@ public class UsersService {
                     .orElseThrow(() -> new IllegalArgumentException("사용자 조회 오류"));
         }
 
-        // 초기 랜덤 닉네임 생성
-        String randomName = NicknameGenerator.generateNickname();
-        boolean isNicknameUsed = usersRepository.existsByProfile_Name(randomName);
+        Profile profile = setRegisteredProfile();
 
-        while(isNicknameUsed){
-            randomName = NicknameGenerator.generateNickname();
-            isNicknameUsed = usersRepository.existsByProfile_Name(randomName);
-        }
-
-        // 패스워드 암호화
         String encodedPassword = passwordEncoder.encode(signupRequestDto.getPassword());
-
-        Profile profile = Profile.builder()
-                .name(randomName)
-                .build();
 
         Users user = Users.builder()
                 .email(signupRequestDto.getEmail())
@@ -123,21 +111,10 @@ public class UsersService {
         if (isVerified) {
             // 임시 저장된 사용자 정보를 가져와서 데이터베이스에 저장
             SignupRequestDto usersDto = emailVerificationService.getUserInfo(email);
-            // 초기 랜덤 닉네임 생성
-            String randomName = NicknameGenerator.generateNickname();
-            boolean isNicknameUsed = usersRepository.existsByProfile_Name(randomName);
 
-            while(isNicknameUsed){
-                randomName = NicknameGenerator.generateNickname();
-                isNicknameUsed = usersRepository.existsByProfile_Name(randomName);
-            }
+            Profile profile = setRegisteredProfile();
 
-            // 패스워드 암호화
             String encodedPassword = passwordEncoder.encode(usersDto.getPassword());
-
-            Profile profile = Profile.builder()
-                    .name(randomName)
-                    .build();
 
             Users user = Users.builder()
                     .email(usersDto.getEmail())
@@ -175,6 +152,14 @@ public class UsersService {
 
     public UserResponseDto loginUser(LoginRequestDto usersDto, HttpServletResponse response) {
         Users user = findByUserEmail(usersDto.getEmail());
+
+        if(user == null){
+            throw new IllegalArgumentException("존재하지 않는 이메일입니다.");
+        }
+
+        if(user.getSocialLoginInfo() != null){
+            throw new IllegalArgumentException("소셜로 가입 된 계정입니다. 가입하신 소셜 로그인을 이용 해주세요.");
+        }
 
         if(!passwordEncoder.matches(usersDto.getPassword(), user.getPassword())){
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
@@ -400,6 +385,21 @@ public class UsersService {
         cookie.setMaxAge(maxAge);
 
         return cookie;
+    }
+
+    public Profile setRegisteredProfile() {
+        // 초기 랜덤 닉네임 생성
+        String randomName = NicknameGenerator.generateNickname();
+        boolean isNicknameUsed = usersRepository.existsByProfile_Name(randomName);
+
+        while(isNicknameUsed){
+            randomName = NicknameGenerator.generateNickname();
+            isNicknameUsed = usersRepository.existsByProfile_Name(randomName);
+        }
+
+        return Profile.builder()
+                .name(randomName)
+                .build();
     }
 
 }
