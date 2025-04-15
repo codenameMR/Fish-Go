@@ -41,6 +41,9 @@ public class Comment {
     // 작성 시간
     private LocalDateTime createdAt;
 
+    // 수정 시간
+    private LocalDateTime updatedAt;
+
     // 댓글 내용 (TEXT 타입)
     @Column(name = "contents", nullable = false)
     private String contents;
@@ -63,8 +66,27 @@ public class Comment {
     @Builder.Default
     private Set<CommentLike> likes = new HashSet<>();
 
+    // 1:1 멘션
+    @OneToOne(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private CommentMention mention; // 단일 멘션
+
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
     }
+
+    public void updateMention(Users user) {
+        this.updatedAt = LocalDateTime.now();
+        // 기존 멘션 제거
+        if (this.mention != null) {
+            this.mention.setComment(null);
+            this.mention = null;
+        }
+        // 새 멘션 생성
+        if (user != null) {
+            this.mention = new CommentMention(this, user);
+        }
+    }
+
 }

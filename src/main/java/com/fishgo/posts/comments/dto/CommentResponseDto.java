@@ -20,11 +20,17 @@ public class CommentResponseDto {
     @Schema(description = "작성자 이름")
     private String name;
 
+    @Schema(description = "멘션 된 유저 정보(id, name)")
+    private CommentMentionDto mentionedUser;
+
     @Schema(description = "댓글 내용")
     private String contents;
 
     @Schema(description = "작성일시")
     private LocalDateTime createdAt;
+
+    @Schema(description = "수정일시")
+    private LocalDateTime updatedAt;
 
     @Schema(description = "부모 댓글 ID", nullable = true)
     private Long parentId;
@@ -43,7 +49,6 @@ public class CommentResponseDto {
 
     @Schema(description = "남은 대댓글 개수")
     private int remainingReplyCount;
-
 
     public void setProfileImg(String profileImg) {
         this.profileImg = ImagePathHelper.buildProfileImagePath(profileImg, userId);

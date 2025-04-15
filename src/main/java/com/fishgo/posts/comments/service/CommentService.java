@@ -2,6 +2,7 @@ package com.fishgo.posts.comments.service;
 
 import com.fishgo.common.service.PageService;
 import com.fishgo.posts.comments.domain.Comment;
+import com.fishgo.posts.comments.domain.CommentMention;
 import com.fishgo.posts.comments.dto.*;
 import com.fishgo.posts.comments.dto.mapper.CommentMapper;
 import com.fishgo.posts.comments.dto.projection.ParentCommentProjection;
@@ -10,6 +11,7 @@ import com.fishgo.posts.comments.repository.CommentRepository;
 import com.fishgo.posts.domain.Posts;
 import com.fishgo.posts.service.PostsService;
 import com.fishgo.users.domain.Users;
+import com.fishgo.users.repository.UsersRepository;
 import com.fishgo.users.service.UsersService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +29,7 @@ import java.util.List;
 public class CommentService {
 
     private final CommentRepository commentRepository;
+    private final UsersRepository usersRepository;
     private final UsersService usersService;
     private final PageService pageService;
     private final PostsService postsService;
@@ -123,6 +126,7 @@ public class CommentService {
      * @param currentUser 현재 접속 중인 유저 객체
      * @return 댓글 응답 객체
      */
+    @Transactional
     public CommentResponseDto saveComment(CommentCreateRequestDto dto, Users currentUser) {
 
         Comment comment = commentMapper.toCreateEntity(dto);
@@ -139,9 +143,16 @@ public class CommentService {
             comment.setParent(parentComment);
         }
 
-        Comment saved = commentRepository.save(comment);
+        // 멘션된 유저 등록
+        Users mentionedUser = (dto.getMentionedUserId() != null)
+                ? usersRepository.findById(dto.getMentionedUserId())
+                .orElseThrow(() -> new IllegalArgumentException("멘션 된 사용자의 정보를 찾을 수 없습니다."))
+                : null;
+        comment.setMention(new CommentMention(comment, mentionedUser));
 
-        return commentMapper.toResponse(saved);
+        commentRepository.save(comment);
+
+        return commentMapper.toResponse(comment);
     }
 
     /**
@@ -150,6 +161,7 @@ public class CommentService {
      * @param currentUser 현재 접속 중인 유저 객체
      * @return 댓글 응답 객체
      */
+    @Transactional
     public CommentResponseDto updateComment(CommentUpdateRequestDto dto, Users currentUser) {
         // 1) DB에서 댓글 엔티티 조회
         Comment comment = commentRepository.findById(dto.getCommentId())
@@ -160,9 +172,15 @@ public class CommentService {
             throw new SecurityException("본인이 작성한 댓글만 수정할 수 있습니다.");
         }
 
-        comment.setContents(dto.getContents());
-        // 4) JpaRepository는 @Transactional 환경에서 엔티티 필드가 변경되면 자동으로 UPDATE 처리됨
+        // 3) JpaRepository는 @Transactional 환경에서 엔티티 필드가 변경되면 자동으로 UPDATE 처리됨
         // 필요하다면 comment = commentRepository.save(comment); 코드로 명시적 업데이트도 가능합니다.
+        comment.setContents(dto.getContents());
+
+        Users mentionedUser = (dto.getMentionedUserId() != null) ?
+                usersRepository.findById(dto.getMentionedUserId())
+                        .orElseThrow(() -> new IllegalArgumentException("멘션 된 사용자의 정보를 찾을 수 없습니다."))
+                : null;
+        comment.updateMention(mentionedUser);
 
         return commentMapper.toResponse(comment);
     }

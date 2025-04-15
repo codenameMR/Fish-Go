@@ -36,11 +36,21 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
             c.user_id           AS user_id,
             c.contents          AS contents,
             c.created_at        AS created_at,
+            c.updated_at        AS updated_at,
             c.like_count        AS like_count,
             p.profile_img       AS profile_img,
             p."name" 	        AS "name",
             rr.reply_id         AS first_reply_id,
-            rr.remaining_count  AS remaining_reply_count
+            rr.remaining_count  AS remaining_reply_count,
+            (
+             SELECT json_build_object(
+                 'mentionUserId', m.mentioned_user_id,
+                 'mentionUserName', pu."name"
+               )
+             FROM comment_mention m
+             JOIN profile pu ON m.mentioned_user_id = pu.user_id
+             WHERE m.comment_id = c.id
+            ) AS mentioned_user
         FROM comment c
         JOIN profile p
                 ON c.user_id = p.user_id

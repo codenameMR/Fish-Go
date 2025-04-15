@@ -22,7 +22,8 @@ public enum ErrorCode {
     USER_NOT_FOUND(404003),
 
     REDIS_CONNECTION_FAILURE(500001),
-    INTERNAL_SERVER_ERROR(500002);
+    INTERNAL_SERVER_ERROR(500002),
+    JSON_PARSE_ERROR(500003);
 
     private final int code;
 

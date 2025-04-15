@@ -26,6 +26,9 @@ public class ReplyResponseDto {
     @Schema(description = "작성일시")
     private LocalDateTime createdAt;
 
+    @Schema(description = "수정일시")
+    private LocalDateTime updatedAt;
+
     @Schema(description = "부모 댓글 ID")
     private Long parentId;
 
@@ -37,6 +40,9 @@ public class ReplyResponseDto {
 
     @Schema(description = "프로필 이미지")
     private String profileImg;
+
+    @Schema(description = "멘션 된 유저 정보(id, name)")
+    private CommentMentionDto mentionedUser;
 
 
     public void setProfileImg(String profileImg) {

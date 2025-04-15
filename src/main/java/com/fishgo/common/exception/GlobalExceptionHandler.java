@@ -1,6 +1,7 @@
 package com.fishgo.common.exception;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fishgo.common.constants.ErrorCode;
 import com.fishgo.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -21,6 +22,14 @@ import java.nio.file.FileSystemException;
 @Slf4j
 @Hidden
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(JsonProcessingException.class)
+    public ResponseEntity<ApiResponse<String>> handleJsonProcessingException(JsonProcessingException e, HttpServletRequest request) {
+        log.error("JsonProcessingException at {}: {}", request.getRequestURI(), e.getMessage(), e);
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(e.getMessage(), ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
+    }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiResponse<String>> handleMissingServletRequestParameterException(MissingServletRequestParameterException e,

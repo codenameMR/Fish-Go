@@ -42,7 +42,7 @@ public class CommentController {
         return ResponseEntity.ok(new ApiResponse<>("댓글 조회 성공", HttpStatus.OK.value(), commentsDtoList));
     }
 
-    @Operation(summary = "대댓글 조회", description = "부모 댓글의 ID로 댓글을 조회합니다. 남은 대댓글 수(remainingRepliesCount)," +
+    @Operation(summary = "대댓글 조회", description = "부모 댓글의 ID로 대댓글을 조회합니다. 남은 대댓글 수(remainingRepliesCount)," +
                                         " 대댓글 정보가 담긴 Page 객체를 반환합니다.")
     @GetMapping("/reply")
     public ResponseEntity<ApiResponse<RepliesResponseDto>> getReply(@RequestParam Long commentId,

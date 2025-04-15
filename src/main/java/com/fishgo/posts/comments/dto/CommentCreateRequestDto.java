@@ -6,6 +6,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Schema(description = "댓글 작성 요청 DTO")
 public class CommentCreateRequestDto {
 
     @Schema(description = "작성 대상 게시글의 식별자(ID)")
@@ -16,4 +17,7 @@ public class CommentCreateRequestDto {
 
     @Schema(description = "부모 댓글 ID (대댓글 작성 시 사용)", nullable = true)
     private Long parentId;
+
+    @Schema(description = "멘션된 유저 아이디", nullable = true)
+    private Long mentionedUserId;
 }

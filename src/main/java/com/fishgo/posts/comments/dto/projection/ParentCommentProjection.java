@@ -7,11 +7,16 @@ public interface ParentCommentProjection {
     Long getUserId();
     String getContents();
     LocalDateTime getCreatedAt();
+    LocalDateTime getUpdatedAt();
     Integer getLikeCount();
     String getName();
     String getProfileImg();
 
     Long getFirstReplyId();
     Integer getRemainingReplyCount();
+
+    // 단일 멘션 (JSON 문자열로 가져옴)
+    String getMentionedUser();
+
 
 }
