@@ -129,7 +129,7 @@ public interface CommentMapper {
     }
 
     private CommentMentionDto toMentionDto(Comment comment){
-        if (comment.getMention() == null) {
+        if (comment.getMention().getMentionedUser() == null) {
             return null;
         }
         Users mentionedUser = comment.getMention().getMentionedUser();
