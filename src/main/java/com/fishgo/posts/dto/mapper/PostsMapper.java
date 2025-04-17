@@ -42,7 +42,7 @@ public interface PostsMapper {
     @Mapping(target = "userProfileImg", source = "post.users.profile.profileImg")
     @Mapping(target = "userName", source = "post.users.profile.name")
     @Mapping(target = "createdAt", source = "createdAt")
-    @Mapping(target = "isModify", source = "isModify")
+    @Mapping(target = "updatedAt", source = "updatedAt")
     @Mapping(target = "hashtag", source = "post.hashtag")  // Set<Hashtag>을 List<String>으로 매핑
     @Mapping(target = "title", source = "title")
     @Mapping(target = "contents", source = "contents")
@@ -61,7 +61,7 @@ public interface PostsMapper {
     @Mapping(target = "userId", source = "post.users.id")
     @Mapping(target = "userProfileImg", source = "post.users.profile.profileImg")
     @Mapping(target = "createdAt", source = "createdAt")
-    @Mapping(target = "isModify", source = "isModify")
+    @Mapping(target = "updatedAt", source = "updatedAt")
     @Mapping(target = "hashtag", source = "post.hashtag")  // Set<Hashtag>을 List<String>으로 매핑
     @Mapping(target = "title", source = "title")
     @Mapping(target = "contents", source = "contents")
@@ -90,8 +90,8 @@ public interface PostsMapper {
     @Mapping(target = "viewCount", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "isModify", constant = "false")
     @Mapping(target = "likes", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     Posts toEntity(PostsCreateRequestDto dto);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -108,7 +108,7 @@ public interface PostsMapper {
     @Mapping(target = "likeCount", ignore = true)
     @Mapping(target = "viewCount", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "isModify", constant = "true")
+    @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "hashtag", ignore = true)
     @Mapping(target = "likes", ignore = true)
     void updateFromDto(PostsUpdateRequestDto dto, @MappingTarget Posts entity);

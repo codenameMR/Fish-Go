@@ -182,9 +182,11 @@ public class PostsService {
         }
 
         postsMapper.updateFromDto(postsDto, post);
-        Posts updatedPost = postsRepository.save(post);
 
-        return postsMapper.toDtoWithoutImage(updatedPost);
+        postsRepository.save(post);
+        postsRepository.flush();
+
+        return postsMapper.toDtoWithoutImage(post);
     }
 
     /**

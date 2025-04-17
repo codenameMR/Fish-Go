@@ -69,6 +69,8 @@ public class Posts {
 
     private LocalDateTime createdAt;
 
+    private LocalDateTime updatedAt;
+
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<PostsLike> likes = new HashSet<>();
@@ -80,14 +82,8 @@ public class Posts {
 
     @PreUpdate
     public void preUpdate() {
-        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
-
-    @Column(name = "is_modify", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
-    private Boolean isModify;
-
-//    @OneToMany(mappedBy = "posts", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<Pinpoint> pinpoints;
 
     // 연관관계 메서드
     public void addImage(PostImage postImage) {

@@ -65,8 +65,8 @@ public class PostsDto {
     @Schema(description = "게시글 생성 시간", example = "2025-04-03T18:12:27.212133816")
     private LocalDateTime createdAt;
 
-    @Schema(description = "수정 여부(default = false)", example = "false")
-    private Boolean isModify;
+    @Schema(description = "게시글 수정 시간", example = "2025-04-03T18:12:27.212133816")
+    private LocalDateTime updatedAt;
 
     @Schema(description = "\"현재 사용자 기준\" 좋아요 여부")
     private boolean isLiked;

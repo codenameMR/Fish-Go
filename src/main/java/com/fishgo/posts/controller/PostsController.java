@@ -110,9 +110,9 @@ public class PostsController {
     }
 
     @Operation(summary = "게시글 수정", description = "게시글 ID와 내용으로 게시글을 수정합니다.")
-    @PutMapping(value = "/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/{postId}")
     public ResponseEntity<ApiResponse<PostsDto>> updatePost(@PathVariable Long postId,
-                                                            @RequestPart(value = "param") PostsUpdateRequestDto postsDto,
+                                                            @RequestBody PostsUpdateRequestDto postsDto,
                                                             @AuthenticationPrincipal Users currentUser) {
 
 
