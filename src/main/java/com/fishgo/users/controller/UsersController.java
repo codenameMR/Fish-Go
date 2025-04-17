@@ -2,10 +2,7 @@ package com.fishgo.users.controller;
 
 import com.fishgo.common.response.ApiResponse;
 import com.fishgo.users.domain.Users;
-import com.fishgo.users.dto.ProfileResponseDto;
-import com.fishgo.users.dto.UpdateNameRequestDto;
-import com.fishgo.users.dto.UpdateProfileBioRequestDto;
-import com.fishgo.users.dto.UserStatsDto;
+import com.fishgo.users.dto.*;
 import com.fishgo.users.service.UsersService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -74,5 +71,14 @@ public class UsersController {
         String newImagePath = usersService.updateProfileImg(user, image);
 
         return ResponseEntity.ok(new ApiResponse<>("프로필 이미지 변경 성공", HttpStatus.OK.value(), newImagePath));
+    }
+
+    @Operation(summary = "기록 탭", description = "기록 탭 하단의 최대 크기/무게 및 기타 기록을 반환합니다.")
+    @GetMapping("/records")
+    public ResponseEntity<ApiResponse<UserRecordsDto>> records(@AuthenticationPrincipal Users currentUser) {
+
+        UserRecordsDto userRecordsDto = usersService.getUserRecords(currentUser);
+
+        return ResponseEntity.ok(new ApiResponse<>("사용자 기록 요청 성공.", HttpStatus.OK.value(),userRecordsDto));
     }
 }

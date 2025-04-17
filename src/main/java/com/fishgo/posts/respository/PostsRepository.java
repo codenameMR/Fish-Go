@@ -3,6 +3,7 @@ package com.fishgo.posts.respository;
 import com.fishgo.posts.domain.Posts;
 import com.fishgo.posts.dto.PinpointDto;
 import com.fishgo.posts.dto.PostStatsDto;
+import com.fishgo.users.dto.MaximumFishDto;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -35,4 +36,25 @@ public interface PostsRepository extends JpaRepository<Posts, Long> {
             @Param("maxLat") Double maxLat, @Param("maxLon") Double maxLon,
             Pageable pageable);
 
+    @Query("SELECT new com.fishgo.users.dto.MaximumFishDto(p.fishType, p.fishSize) "
+            + "FROM Posts p "
+            + "WHERE p.users.id = :userId "
+            + "ORDER BY p.fishSize DESC")
+    List<MaximumFishDto> findTop3FishByUserId(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("SELECT p.fishType "
+            + "FROM Posts p "
+            + "WHERE p.users.id = :userId "
+            + "GROUP BY p.fishType "
+            + "ORDER BY COUNT(p.fishType) DESC")
+    List<String> findTopFishType(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("SELECT p.location "
+            + "FROM Posts p "
+            + "WHERE p.users.id = :userId "
+            + "GROUP BY p.location "
+            + "ORDER BY COUNT(p.location) DESC")
+    List<String> findMostVisitedPlace(@Param("userId") Long userId, Pageable pageable);
+
+    long countByUsers_Id(Long userId);
 }

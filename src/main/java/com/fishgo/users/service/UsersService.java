@@ -1,8 +1,8 @@
 package com.fishgo.users.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fishgo.common.constants.ErrorCode;
 import com.fishgo.common.constants.JwtProperties;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fishgo.common.constants.UploadPaths;
 import com.fishgo.common.exception.CustomException;
 import com.fishgo.common.service.ImageService;
@@ -25,6 +25,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.nio.file.FileSystemException;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -387,7 +389,7 @@ public class UsersService {
         return cookie;
     }
 
-    public Profile setRegisteredProfile() {
+    private Profile setRegisteredProfile() {
         // 초기 랜덤 닉네임 생성
         String randomName = NicknameGenerator.generateNickname();
         boolean isNicknameUsed = usersRepository.existsByProfile_Name(randomName);
@@ -399,6 +401,29 @@ public class UsersService {
 
         return Profile.builder()
                 .name(randomName)
+                .build();
+    }
+
+    public UserRecordsDto getUserRecords(Users currentUser) {
+
+        Long userId = currentUser.getId();
+
+        long postCount = postsRepository.countByUsers_Id(userId);
+        if(postCount < 3){ return null; }
+
+        List<MaximumFishDto> top3Fishes = postsRepository.findTop3FishByUserId(userId, PageRequest.of(0, 3));
+        String topFishType = postsRepository.findTopFishType(userId, PageRequest.of(0, 1)).getFirst();
+        String mostVisitedPlace = postsRepository.findMostVisitedPlace(userId, PageRequest.of(0, 1)).getFirst();
+
+        // 총 잡은 마릿수와 낚시 횟수는 임시로 postCount를 넣음.
+        return UserRecordsDto.builder()
+                .totalCatchCount(postCount)
+                .gold(top3Fishes.getFirst())
+                .silver(top3Fishes.get(1))
+                .bronze(top3Fishes.get(2))
+                .fishingCount(postCount)
+                .topFishType(topFishType)
+                .mostVisitedPlace(mostVisitedPlace)
                 .build();
     }
 
