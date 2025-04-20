@@ -73,4 +73,5 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
             Pageable pageable
     );
 
+    Page<Comment> findAllByUser_Id(Long id, Pageable pageable);
 }

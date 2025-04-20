@@ -52,7 +52,7 @@ public class PostsService {
     public Page<PostListResponseDto> getAllPosts(Pageable pageable) {
         Page<Posts> page = postsRepository.findAll(pageable);
 
-        return page.map(postsMapper::toResponseDto);
+        return page.map(postsMapper::toPostListResponseDto);
     }
 
 
@@ -137,10 +137,11 @@ public class PostsService {
     }
 
 
-    public List<PostsDto> searchPosts(String title, String fishType) {
-        return postsRepository.searchPosts(title, fishType).stream()
-                .map(postsMapper::toDto)
-                .collect(Collectors.toList());
+    public Page<PostListResponseDto> searchPosts(String query, Pageable pageable) {
+
+        Page<Posts> page = postsRepository.searchPosts(query, pageable);
+
+        return page.map(postsMapper::toPostListResponseDto);
     }
 
     /**

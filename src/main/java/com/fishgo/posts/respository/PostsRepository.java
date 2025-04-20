@@ -4,6 +4,7 @@ import com.fishgo.posts.domain.Posts;
 import com.fishgo.posts.dto.PinpointDto;
 import com.fishgo.posts.dto.PostStatsDto;
 import com.fishgo.users.dto.MaximumFishDto;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,10 +17,10 @@ public interface PostsRepository extends JpaRepository<Posts, Long> {
 
     @Query(
             "SELECT p FROM Posts p WHERE " +
-            "(:title IS NULL OR p.title LIKE %:title%) AND " +
-            "(:fishType IS NULL OR p.fishType LIKE %:fishType%)"
+                "p.title LIKE %:query% OR " +
+                "p.contents LIKE %:query%"
         )
-    List<Posts> searchPosts(@Param("title") String title, @Param("fishType") String fishType);
+    Page<Posts> searchPosts(@Param("query") String query, Pageable pageable);
 
     @Query("SELECT NEW com.fishgo.posts.dto.PostStatsDto(" +
             "COUNT(p), COALESCE(SUM(p.likeCount), 0)) " +
@@ -57,4 +58,6 @@ public interface PostsRepository extends JpaRepository<Posts, Long> {
     List<String> findMostVisitedPlace(@Param("userId") Long userId, Pageable pageable);
 
     long countByUsers_Id(Long userId);
+
+    Page<Posts> findAllByUsers_Id(Long usersId, Pageable pageable);
 }

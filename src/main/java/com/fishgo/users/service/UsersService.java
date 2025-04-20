@@ -9,9 +9,15 @@ import com.fishgo.common.service.ImageService;
 import com.fishgo.common.util.ImagePathHelper;
 import com.fishgo.common.util.JwtUtil;
 import com.fishgo.common.util.NicknameGenerator;
+import com.fishgo.posts.comments.domain.Comment;
+import com.fishgo.posts.comments.dto.CommentResponseDto;
 import com.fishgo.posts.comments.dto.CommentStatsDto;
+import com.fishgo.posts.comments.dto.mapper.CommentMapper;
 import com.fishgo.posts.comments.repository.CommentRepository;
+import com.fishgo.posts.domain.Posts;
+import com.fishgo.posts.dto.PostListResponseDto;
 import com.fishgo.posts.dto.PostStatsDto;
+import com.fishgo.posts.dto.mapper.PostsMapper;
 import com.fishgo.posts.respository.PostsRepository;
 import com.fishgo.users.domain.Profile;
 import com.fishgo.users.domain.Users;
@@ -25,7 +31,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -57,6 +65,9 @@ public class UsersService {
 
     private final EmailVerService emailVerificationService;
     private final EmailService emailService;
+
+    private final PostsMapper postsMapper;
+    private final CommentMapper commentMapper;
 
     /**
      * 회원가입 처리 및 프로필 디렉토리 생성
@@ -427,4 +438,16 @@ public class UsersService {
                 .build();
     }
 
+    public Page<PostListResponseDto> getMyPosts(Pageable pageable, Users currentUser) {
+        Page<Posts> page = postsRepository.findAllByUsers_Id(currentUser.getId(), pageable);
+
+        return page.map(postsMapper::toPostListResponseDto);
+    }
+
+    public Page<CommentResponseDto> getMyComments(Pageable pageable, Users currentUser) {
+        Page<Comment> page = commentRepository.findAllByUser_Id(currentUser.getId(), pageable);
+
+        return page.map(commentMapper::toResponse);
+
+    }
 }

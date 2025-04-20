@@ -26,7 +26,7 @@ public interface PostsMapper {
     @Mapping(target = "likeCount", source = "posts.likeCount")
     @Mapping(target = "viewCount", source = "posts.viewCount")
     @Mapping(target = "createdAt", source = "posts.createdAt")
-    PostListResponseDto toResponseDto(Posts posts);
+    PostListResponseDto toPostListResponseDto(Posts posts);
 
     @AfterMapping // 게시글의 첫번째 이미지를 썸네일로 지정
     default void setThumbnail(Posts posts, @MappingTarget PostListResponseDto dto) {

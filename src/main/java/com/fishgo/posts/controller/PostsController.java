@@ -100,13 +100,21 @@ public class PostsController {
                             imageList));
     }
 
-    @Operation(summary = "게시글 검색", description = "게시글의 제목, 해시태그, 어종 검색 로직 입니다.")
+    @Operation(summary = "게시글 검색", description = "게시글의 제목 및 내용에 대해 검색합니다.(최소 두 글자)")
     @GetMapping("/search")
-    public List<PostsDto> search (
-            @RequestParam(required = false) String title,
-            @RequestParam(required = false) String fishType
-    ) {
-        return postsService.searchPosts(title, fishType);
+    public ResponseEntity<ApiResponse<Page<PostListResponseDto>>>
+    search (@RequestParam String query,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size) {
+
+        if (query.length() < 2) {
+            throw new CustomException(ErrorCode.BAD_REQUEST.getCode(), "최소 2글자 이상이어야 검색 가능합니다.");
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        Page<PostListResponseDto> postListResponse = postsService.searchPosts(query, pageable);
+
+        return ResponseEntity.ok(new ApiResponse<>("게시글 검색 성공", HttpStatus.OK.value(), postListResponse));
     }
 
     @Operation(summary = "게시글 수정", description = "게시글 ID와 내용으로 게시글을 수정합니다.")
