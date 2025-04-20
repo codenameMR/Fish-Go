@@ -15,6 +15,7 @@ import com.fishgo.posts.comments.dto.CommentStatsDto;
 import com.fishgo.posts.comments.dto.mapper.CommentMapper;
 import com.fishgo.posts.comments.repository.CommentRepository;
 import com.fishgo.posts.domain.Posts;
+import com.fishgo.posts.dto.PinpointDto;
 import com.fishgo.posts.dto.PostListResponseDto;
 import com.fishgo.posts.dto.PostStatsDto;
 import com.fishgo.posts.dto.mapper.PostsMapper;
@@ -50,6 +51,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class UsersService {
 
+    private final PostsMapper postsMapper;
     @Value("${user.upload.path}")
     String uploadPath;
 
@@ -66,7 +68,6 @@ public class UsersService {
     private final EmailVerService emailVerificationService;
     private final EmailService emailService;
 
-    private final PostsMapper postsMapper;
     private final CommentMapper commentMapper;
 
     /**
@@ -439,9 +440,9 @@ public class UsersService {
     }
 
     public Page<PostListResponseDto> getMyPosts(Pageable pageable, Users currentUser) {
-        Page<Posts> page = postsRepository.findAllByUsers_Id(currentUser.getId(), pageable);
+        Page<Posts> myPostsEntity = postsRepository.findAllByUsers_Id(currentUser.getId(), pageable);
 
-        return page.map(postsMapper::toPostListResponseDto);
+        return myPostsEntity.map(postsMapper::toPostListResponseDto);
     }
 
     public Page<CommentResponseDto> getMyComments(Pageable pageable, Users currentUser) {
@@ -449,5 +450,9 @@ public class UsersService {
 
         return page.map(commentMapper::toResponse);
 
+    }
+
+    public List<PinpointDto> getMyVisitedPlace(Users currentUser) {
+        return postsRepository.findMyPinpoint(currentUser.getId()).orElse(List.of());
     }
 }

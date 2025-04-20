@@ -60,4 +60,13 @@ public interface PostsRepository extends JpaRepository<Posts, Long> {
     long countByUsers_Id(Long userId);
 
     Page<Posts> findAllByUsers_Id(Long usersId, Pageable pageable);
+
+    @Query("SELECT NEW com.fishgo.posts.dto.PinpointDto(" +
+            "p.id, p.lat, p.lon) " +
+            "FROM Posts p " +
+            "WHERE p.users.id = :userId " +
+            "AND p.lat IS NOT NULL " +
+            "AND p.lon IS NOT NULL")
+    Optional<List<PinpointDto>> findMyPinpoint(@Param("userId") Long userId);
+
 }

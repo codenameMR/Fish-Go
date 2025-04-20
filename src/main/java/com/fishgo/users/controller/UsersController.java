@@ -2,6 +2,7 @@ package com.fishgo.users.controller;
 
 import com.fishgo.common.response.ApiResponse;
 import com.fishgo.posts.comments.dto.CommentResponseDto;
+import com.fishgo.posts.dto.PinpointDto;
 import com.fishgo.posts.dto.PostListResponseDto;
 import com.fishgo.users.domain.Users;
 import com.fishgo.users.dto.*;
@@ -19,6 +20,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @Tag(name = "사용자 정보 API", description = "프로필, 기록 등 사용자 정보 관련 API")
 @RestController
@@ -89,7 +92,7 @@ public class UsersController {
     }
 
     @Operation(summary = "내 게시글 목록", description = "사용자가 작성한 게시글 목록을 반환합니다.")
-    @GetMapping(value = "/posts")
+    @GetMapping("/posts")
     public ResponseEntity<ApiResponse<Page<PostListResponseDto>>> getMyPosts(
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "20") int size,
@@ -116,5 +119,16 @@ public class UsersController {
         Page<CommentResponseDto> responses = usersService.getMyComments(pageable, currentUser);
 
         return ResponseEntity.ok(new ApiResponse<>("내 댓글 목록 조회 성공", HttpStatus.OK.value(), responses));
+    }
+
+    @Operation(summary = "내가 방문한 장소", description = "사용자가 방문한 장소의 위경도 목록을 반환합니다.")
+    @GetMapping("/place")
+    public ResponseEntity<ApiResponse<List<PinpointDto>>> getMyVisitedPlace(
+            @AuthenticationPrincipal Users currentUser) {
+
+        List<PinpointDto> myPlaceList = usersService.getMyVisitedPlace(currentUser);
+
+        return ResponseEntity.ok(new ApiResponse<>("내가 방문한 장소 조회 성공.",
+                HttpStatus.OK.value(), myPlaceList));
     }
 }
