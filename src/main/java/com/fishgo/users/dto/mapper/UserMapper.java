@@ -17,6 +17,8 @@ public interface UserMapper {
     @Mapping(target = "socialLoginInfo", source = "socialLoginInfo")
     @Mapping(target = "role", source = "role")
     @Mapping(target = "profileImg", source = "profile.profileImg")
+    @Mapping(target = "status", source = "status")
+    @Mapping(target = "withdrawRequestedAt", source = "withdrawRequestedAt")
     UserResponseDto toUserResponseDto(Users users);
 
     @Mapping(target = "id", source = "id")

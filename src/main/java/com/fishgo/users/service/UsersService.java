@@ -10,7 +10,8 @@ import com.fishgo.common.util.ImagePathHelper;
 import com.fishgo.common.util.JwtUtil;
 import com.fishgo.common.util.NicknameGenerator;
 import com.fishgo.posts.comments.domain.Comment;
-import com.fishgo.posts.comments.dto.CommentResponseDto;
+import com.fishgo.posts.comments.domain.CommentStatus;
+import com.fishgo.posts.comments.dto.CommentWithFirstReplyResponseDto;
 import com.fishgo.posts.comments.dto.CommentStatsDto;
 import com.fishgo.posts.comments.dto.mapper.CommentMapper;
 import com.fishgo.posts.comments.repository.CommentRepository;
@@ -21,6 +22,7 @@ import com.fishgo.posts.dto.PostStatsDto;
 import com.fishgo.posts.dto.mapper.PostsMapper;
 import com.fishgo.posts.respository.PostsRepository;
 import com.fishgo.users.domain.Profile;
+import com.fishgo.users.domain.UserStatus;
 import com.fishgo.users.domain.Users;
 import com.fishgo.users.dto.*;
 import com.fishgo.users.dto.mapper.UserMapper;
@@ -43,6 +45,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.nio.file.FileSystemException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -211,17 +214,41 @@ public class UsersService {
     }
 
     @Transactional
-    public void deleteUser(HttpServletResponse response, Users currentUser)  {
+    public void withDrawUser(HttpServletResponse response, Users currentUser)  {
 
-        long userId = currentUser.getId();
-        log.debug("deleteUser userId : {}", userId);
+        Users persistedUser = findByUserId(currentUser.getId());
+        long userId = persistedUser.getId();
+
+        log.debug("withDrawUser userId : {}", userId);
 
         // 쿠키 만료시켜서 삭제
         response.addCookie(invalidateToken("refreshToken"));
         response.addCookie(invalidateToken("accessToken"));
 
-        usersRepository.deleteById(userId);
-        log.debug("deleteUser successful userId : {}", userId);
+        // 탈퇴 요청 상태 변경
+        persistedUser.setStatus(UserStatus.WITHDRAWN_REQUEST);
+        persistedUser.setWithdrawRequestedAt(LocalDateTime.now());
+
+        // 사용자의 게시글 및 댓글 비활성화 처리
+        postsRepository.updatePostsIsActiveByUserId(userId, false);
+        commentRepository.updateCommentStatusByUserId(userId, CommentStatus.USER_WITHDRAWN);
+
+        log.debug("withDrawUser successful userId : {}", userId);
+    }
+
+    @Transactional
+    public void cancelWithdraw(Users currentUser) {
+        Users persistedUser = findByUserId(currentUser.getId());
+        long userId = persistedUser.getId();
+
+        // 탈퇴 취소 요청 상태 변경
+        persistedUser.setStatus(UserStatus.ACTIVE);
+        persistedUser.setWithdrawRequestedAt(null);
+
+        // 사용자의 게시글 및 댓글 재활성화 처리
+        postsRepository.updatePostsIsActiveByUserId(userId, true);
+        commentRepository.updateCommentStatusByUserId(userId, CommentStatus.ACTIVE);
+
     }
 
     public void refreshToken(HttpServletResponse response, String refreshToken) {
@@ -375,7 +402,7 @@ public class UsersService {
 
         Cookie cookie = new Cookie(token, null);
         cookie.setHttpOnly(true);
-        cookie.setSecure(true);
+        cookie.setSecure(false);
         cookie.setPath("/");
         cookie.setMaxAge(0); // 즉시 만료
 
@@ -394,7 +421,7 @@ public class UsersService {
 
         Cookie cookie = new Cookie(tokenType, tokenValue);
         cookie.setHttpOnly(true);
-        cookie.setSecure(false); // 추후 정식 배포 후 true로 변경(https)
+        cookie.setSecure(false); // 개발서버는 http이기 때문에 임시 false 설정
         cookie.setPath("/");
         cookie.setMaxAge(maxAge);
 
@@ -445,7 +472,7 @@ public class UsersService {
         return myPostsEntity.map(postsMapper::toPostListResponseDto);
     }
 
-    public Page<CommentResponseDto> getMyComments(Pageable pageable, Users currentUser) {
+    public Page<CommentWithFirstReplyResponseDto> getMyComments(Pageable pageable, Users currentUser) {
         Page<Comment> page = commentRepository.findAllByUser_Id(currentUser.getId(), pageable);
 
         return page.map(commentMapper::toResponse);
@@ -455,4 +482,5 @@ public class UsersService {
     public List<PinpointDto> getMyVisitedPlace(Users currentUser) {
         return postsRepository.findMyPinpoint(currentUser.getId()).orElse(List.of());
     }
+
 }

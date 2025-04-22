@@ -50,7 +50,7 @@ public class PostsService {
      * @return 게시글 목록 응답 DTO
      */
     public Page<PostListResponseDto> getAllPosts(Pageable pageable) {
-        Page<Posts> page = postsRepository.findAll(pageable);
+        Page<Posts> page = postsRepository.findAllByActive(true, pageable);
 
         return page.map(postsMapper::toPostListResponseDto);
     }
@@ -204,8 +204,7 @@ public class PostsService {
             throw new IllegalArgumentException("작성자만 수정 가능합니다.");
         }
 
-        postsLikeRepository.deleteAllByPostId(postId);
-        postsRepository.delete(post);
+        post.setActive(false);
     }
 
     public Posts findById(long postId) {
@@ -221,6 +220,11 @@ public class PostsService {
      */
     public PostsDto getPostDetail(Long postId, String redisUserKey, Users currentUser) {
         Posts post = findById(postId);
+
+        if(!post.isActive()){
+            throw new CustomException(ErrorCode.USER_WITHDRAWN_POST_ACCESS_DENIED.getCode(),
+                    "탈퇴한 사용자의 게시글은 볼 수 없습니다.");
+        }
 
         // Redis 조회 키 생성
         String redisKey = "postView:" + postId + ":" + redisUserKey;

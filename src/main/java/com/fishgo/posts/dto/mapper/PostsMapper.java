@@ -92,6 +92,7 @@ public interface PostsMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "likes", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "active", ignore = true)
     Posts toEntity(PostsCreateRequestDto dto);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -111,6 +112,7 @@ public interface PostsMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "hashtag", ignore = true)
     @Mapping(target = "likes", ignore = true)
+    @Mapping(target = "active", ignore = true)
     void updateFromDto(PostsUpdateRequestDto dto, @MappingTarget Posts entity);
 
 

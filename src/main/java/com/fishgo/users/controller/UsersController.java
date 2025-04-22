@@ -1,7 +1,7 @@
 package com.fishgo.users.controller;
 
 import com.fishgo.common.response.ApiResponse;
-import com.fishgo.posts.comments.dto.CommentResponseDto;
+import com.fishgo.posts.comments.dto.CommentWithFirstReplyResponseDto;
 import com.fishgo.posts.dto.PinpointDto;
 import com.fishgo.posts.dto.PostListResponseDto;
 import com.fishgo.users.domain.Users;
@@ -108,7 +108,7 @@ public class UsersController {
 
     @Operation(summary = "내 댓글 목록", description = "사용자가 작성한 댓글 목록을 반환합니다.")
     @GetMapping(value = "/comments")
-    public ResponseEntity<ApiResponse<Page<CommentResponseDto>>> getMyComments(
+    public ResponseEntity<ApiResponse<Page<CommentWithFirstReplyResponseDto>>> getMyComments(
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "20") int size,
             @AuthenticationPrincipal Users currentUser) {
@@ -116,7 +116,7 @@ public class UsersController {
         // 페이지 번호(page), 조회 개수(size)로 PageRequest 생성
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
 
-        Page<CommentResponseDto> responses = usersService.getMyComments(pageable, currentUser);
+        Page<CommentWithFirstReplyResponseDto> responses = usersService.getMyComments(pageable, currentUser);
 
         return ResponseEntity.ok(new ApiResponse<>("내 댓글 목록 조회 성공", HttpStatus.OK.value(), responses));
     }
