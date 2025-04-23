@@ -7,6 +7,7 @@ import com.fishgo.common.constants.UploadPaths;
 import com.fishgo.common.exception.CustomException;
 import com.fishgo.common.service.ImageService;
 import com.fishgo.common.util.ImagePathHelper;
+import com.fishgo.common.util.ImageValidator;
 import com.fishgo.common.util.JwtUtil;
 import com.fishgo.common.util.NicknameGenerator;
 import com.fishgo.posts.comments.domain.Comment;
@@ -364,9 +365,8 @@ public class UsersService {
     @Transactional
     public String updateProfileImg(Users currentUser, MultipartFile profileImg) {
 
-        if(!imageService.isImageFile(profileImg)){
-            throw new IllegalArgumentException("이미지 형식이 아닙니다.");
-        }
+        ImageValidator.validate(profileImg);
+
         String profileImgName = imageService.uploadProfileImage(profileImg, currentUser.getId());
 
         currentUser.getProfile().setProfileImg(profileImgName);
