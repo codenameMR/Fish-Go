@@ -98,7 +98,7 @@ public class AuthController {
     @Operation(summary = "로그아웃", description = "FE에서 AccessToken, BE에서는 RefreshToken을 삭제합니다.")
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(HttpServletResponse response,
-                                                      @CookieValue(name = "refreshToken") String refreshToken,
+                                                      @CookieValue(name = "refreshToken", required = false) String refreshToken,
                                                       @CookieValue(name = "accessToken") String accessToken) {
         usersService.logoutUser(response, refreshToken, accessToken);
 

@@ -5,8 +5,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-
 @Getter
 @Setter
 public class UserResponseDto {
@@ -33,8 +31,8 @@ public class UserResponseDto {
     @Schema(description = "사용자 상태", example = "ACTIVE / WITHDRAW_REQUEST / DELETED")
     private String status;
 
-    @Schema(description = "사용자 탈퇴 요청 시간")
-    private LocalDateTime withdrawRequestedAt;
+    @Schema(description = "영구 삭제까지 남은 일 시 분")
+    private WithdrawCountdownDto withdrawCountdown;
 
     public void setProfileImg(String profileImg) {
         this.profileImg = ImagePathHelper.buildProfileImagePath(profileImg, id);

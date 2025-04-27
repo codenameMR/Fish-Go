@@ -154,7 +154,7 @@ public interface CommentMapper {
 
     private void setContentsByStatus(CommentResponseDto response, CommentStatus status) {
         switch (status) {
-            case USER_WITHDRAWN -> response.setContents("탈퇴한 사용자의 댓글입니다.");
+            case USER_WITHDRAW -> response.setContents("탈퇴한 사용자의 댓글입니다.");
             case DELETED_BY_ADMIN -> response.setContents("관리자에 의해 삭제된 댓글입니다.");
             case DELETED_BY_USER -> response.setContents("사용자에 의해 삭제된 댓글입니다.");
         }
