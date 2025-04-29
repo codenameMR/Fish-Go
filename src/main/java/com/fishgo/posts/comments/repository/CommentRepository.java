@@ -74,4 +74,11 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     );
 
     Page<Comment> findAllByUser_Id(Long id, Pageable pageable);
+
+    @Query("SELECT COUNT(c) FROM Comment c WHERE c.user.id = :userId")
+    Long countByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT COUNT(DISTINCT c.post.id) FROM Comment c WHERE c.user.id = :userId")
+    Long countDistinctPostsCommentedByUserId(@Param("userId") Long userId);
+
 }

@@ -69,4 +69,6 @@ public interface PostsRepository extends JpaRepository<Posts, Long> {
             "AND p.lon IS NOT NULL")
     Optional<List<PinpointDto>> findMyPinpoint(@Param("userId") Long userId);
 
+    Long countByUsersId(Long userId);
+
 }
