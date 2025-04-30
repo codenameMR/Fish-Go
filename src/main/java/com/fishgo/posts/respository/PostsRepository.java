@@ -84,6 +84,8 @@ public interface PostsRepository extends JpaRepository<Posts, Long> {
            """)
     Optional<List<PinpointDto>> findMyPinpoint(@Param("userId") Long userId);
 
+    Long countByUsersId(Long userId);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Posts p SET p.active = :isActive WHERE p.users.id = :userId")
     void updatePostsIsActiveByUserId(Long userId, boolean isActive);

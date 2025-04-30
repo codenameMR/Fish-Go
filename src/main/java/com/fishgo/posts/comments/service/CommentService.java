@@ -2,6 +2,7 @@ package com.fishgo.posts.comments.service;
 
 import com.fishgo.common.constants.ErrorCode;
 import com.fishgo.common.exception.CustomException;
+import com.fishgo.badge.event.CommentCreatedEvent;
 import com.fishgo.common.service.PageService;
 import com.fishgo.posts.comments.domain.Comment;
 import com.fishgo.posts.comments.domain.CommentMention;
@@ -17,6 +18,7 @@ import com.fishgo.users.domain.Users;
 import com.fishgo.users.repository.UsersRepository;
 import com.fishgo.users.service.UsersService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +40,7 @@ public class CommentService {
     private final PostsService postsService;
     private final CommentMapper commentMapper;
     private final CommentLikeRepository commentLikeRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 댓글 및 해당 댓글의 첫번째 대댓글, 그리고 남은 대댓글 개수를 반환한다.
@@ -164,7 +167,10 @@ public class CommentService {
                 : null;
         comment.setMention(new CommentMention(comment, mentionedUser));
 
-        commentRepository.save(comment);
+        Comment savedComment = commentRepository.save(comment);
+
+        // 뱃지 이벤트
+        eventPublisher.publishEvent(new CommentCreatedEvent(savedComment));
 
         return commentMapper.toResponse(comment);
     }

@@ -1,5 +1,6 @@
 package com.fishgo.posts.service;
 
+import com.fishgo.badge.event.PostCreatedEvent;
 import com.fishgo.common.constants.ErrorCode;
 import com.fishgo.common.constants.UploadPaths;
 import com.fishgo.common.exception.CustomException;
@@ -17,6 +18,7 @@ import com.fishgo.posts.respository.PostsRepository;
 import com.fishgo.users.domain.Users;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -44,6 +46,7 @@ public class PostsService {
     private final PostsLikeRepository postsLikeRepository;
     private final ImageService imageService;
     private final RedisService redisService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 게시글 목록
@@ -75,7 +78,10 @@ public class PostsService {
         newPost.setHashtag(hashtags);
 
         // 4) DB 저장
-        postsRepository.save(newPost);
+        Posts savedPost = postsRepository.save(newPost);
+
+        // 뱃지 이벤트
+        eventPublisher.publishEvent(new PostCreatedEvent(savedPost));
 
         // 5) 결과 DTO 반환
         return postsMapper.toDtoWithoutImage(newPost);
