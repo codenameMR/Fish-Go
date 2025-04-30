@@ -69,37 +69,38 @@ public class PostsController {
             return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "이미지 업로드 및 삭제", description = "업로드 할 이미지가 있으면 업로드, 삭제 할 이미지가 있으면 삭제 처리 합니다.\n **form-data**로 요청 보내야 합니다.")
-    @PutMapping(value = "/{postId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<List<ImageDto>>> uploadImage(@PathVariable(value = "postId") Long postId,
-                                                                   @Parameter(description = "업로드 할 이미지 리스트")
-                                                                       @RequestParam(value = "images", required = false) List<MultipartFile> images,
-                                                                   @Parameter(description = "삭제 할 이미지의 아이디 리스트 ex) [2,4,6]")
-                                                                       @RequestPart(value = "deleteImageIds", required = false) Set<Long> deleteImageIds,
-                                                                   @AuthenticationPrincipal Users currentUser) throws FileSystemException {
+    @Operation(summary = "이미지 업로드", description = "게시글에 새로운 이미지를 업로드합니다.\n **form-data**로 요청 보내야 합니다.")
+    @PostMapping(path = "/{postId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<List<ImageDto>>> uploadImages(
+            @PathVariable Long postId,
+            @Parameter(description = "업로드 할 이미지 리스트")
+            @RequestParam("images") List<MultipartFile> images,
+            @AuthenticationPrincipal Users currentUser) throws FileSystemException {
 
-        List<ImageDto> imageList = null;
+        List<ImageDto> imageList = postsService.uploadImages(postId, images, currentUser);
 
-        // 삭제할 이미지가 있으면 삭제 처리
-        if(deleteImageIds != null && !deleteImageIds.isEmpty()) {
-            imageList = postsService.deleteImages(postId, deleteImageIds, currentUser);
-        }
-
-        // 업로드할 이미지가 있으면 업로드 처리
-        if(images != null && !images.isEmpty()){
-            imageList = postsService.uploadImages(postId, images, currentUser);
-        }
-
-        // 아무 작업도 수행하지 않은경우 400
-        if(imageList == null) {
-            throw new CustomException(ErrorCode.BAD_REQUEST.getCode(),
-                    "업로드 하거나 삭제할 이미지를 지정 해주세요.");
-        }
-
-        return ResponseEntity.ok(new ApiResponse<>("이미지 업로드 및 수정에 성공 했습니다.",
-                            HttpStatus.OK.value(),
-                            imageList));
+        return ResponseEntity.ok(new ApiResponse<>(
+                "이미지 업로드에 성공했습니다.",
+                HttpStatus.OK.value(),
+                imageList));
     }
+
+    @Operation(summary = "이미지 삭제", description = "게시글의 기존 이미지를 삭제합니다.")
+    @DeleteMapping(path = "/{postId}/images")
+    public ResponseEntity<ApiResponse<List<ImageDto>>> deleteImages(
+            @PathVariable Long postId,
+            @Parameter(description = "삭제할 이미지의 아이디 리스트 ex) [2,4,6]")
+            @RequestBody Set<Long> imageIds,
+            @AuthenticationPrincipal Users currentUser) {
+
+        List<ImageDto> remainingImages = postsService.deleteImages(postId, imageIds, currentUser);
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                "이미지 삭제에 성공했습니다.",
+                HttpStatus.OK.value(),
+                remainingImages));
+    }
+
 
     @Operation(summary = "게시글 검색", description = "게시글의 제목 및 내용에 대해 검색합니다.(최소 두 글자)")
     @GetMapping("/search")
