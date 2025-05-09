@@ -45,7 +45,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain chain)
             throws ServletException, IOException {
         try {
-
             // 1. Access Token 추출
             String accessToken = jwtUtil.resolveTokenFromCookies(request, "accessToken");
 
@@ -57,9 +56,9 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                     throw new CustomException(ErrorCode.BLACKLISTED_TOKEN.getCode(), "이미 로그아웃된 토큰입니다.");
                 }
 
-                long userId = jwtUtil.extractUserId(accessToken);
+                Long userId = jwtUtil.extractUserId(accessToken);
 
-                if (userId != 0 && SecurityContextHolder.getContext().getAuthentication() == null) {
+                if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     Users user = usersRepository.findById(userId)
                             .orElseThrow(() -> new IllegalArgumentException("토큰 발급 중 유저 조회 실패"));
 
@@ -75,7 +74,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                     if (jwtUtil.isRefreshBlacklisted(refreshToken)) {
                         throw new CustomException(ErrorCode.BLACKLISTED_TOKEN.getCode(), "이미 로그아웃된 토큰입니다.");
                     }
-                    long userId = jwtUtil.extractUserId(refreshToken);
+                    Long userId = jwtUtil.extractUserId(refreshToken);
 
                     Users user = usersRepository.findById(userId)
                             .orElseThrow(() -> new IllegalArgumentException("토큰 발급 중 유저 조회 실패"));
@@ -83,7 +82,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                     JwtRequestDto jwtRequestDto = userMapper.toJwtRequestDto(user);
                     String newAccessToken = jwtUtil.generateAccessToken(jwtRequestDto);
 
-                    response.addCookie(jwtUtil.registerToken(newAccessToken, "accessToken"));
+                    response.addCookie(jwtUtil.registerToken("accessToken", newAccessToken));
 
                     setAuthentication(user);
                 }
