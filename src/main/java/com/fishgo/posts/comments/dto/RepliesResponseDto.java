@@ -12,6 +12,6 @@ public class RepliesResponseDto {
 
     private long remainingRepliesCount;
 
-    private Page<ReplyResponseDto> replies;
+    private Page<CommentResponseDto> replies;
 
 }

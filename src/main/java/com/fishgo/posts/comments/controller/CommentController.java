@@ -30,14 +30,14 @@ public class CommentController {
 
     @Operation(summary = "댓글 조회", description = "게시글 ID로 해당 게시물의 댓글을 조회합니다.")
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<CommentResponseDto>>> getComments(@RequestParam Long postId,
-                                                                             @RequestParam(value = "page", defaultValue = "0") int page,
-                                                                             @RequestParam(value = "size", defaultValue = "20") int size,
-                                                                             @AuthenticationPrincipal Users currentUser) {
+    public ResponseEntity<ApiResponse<Page<CommentWithFirstReplyResponseDto>>> getComments(@RequestParam Long postId,
+                                                                                           @RequestParam(value = "page", defaultValue = "0") int page,
+                                                                                           @RequestParam(value = "size", defaultValue = "20") int size,
+                                                                                           @AuthenticationPrincipal Users currentUser) {
         // 페이지 번호(page), 조회 개수(size)로 PageRequest 생성
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
 
-        Page<CommentResponseDto> commentsDtoList = commentService.getParentCommentsWithFirstReply(postId, pageable, currentUser);
+        Page<CommentWithFirstReplyResponseDto> commentsDtoList = commentService.getParentCommentsWithFirstReply(postId, pageable, currentUser);
 
         return ResponseEntity.ok(new ApiResponse<>("댓글 조회 성공", HttpStatus.OK.value(), commentsDtoList));
     }
@@ -59,21 +59,21 @@ public class CommentController {
 
     @Operation(summary = "댓글 및 대댓글 작성", description = "게시글 ID, 댓글 내용, (대댓글인 경우 부모 댓글의 ID)로 댓글을 작성합니다.")
     @PostMapping
-    public ResponseEntity<ApiResponse<CommentResponseDto>> createComment(@RequestBody CommentCreateRequestDto commentDto, @AuthenticationPrincipal Users currentUser) {
+    public ResponseEntity<ApiResponse<CommentWithFirstReplyResponseDto>> createComment(@RequestBody CommentCreateRequestDto commentDto, @AuthenticationPrincipal Users currentUser) {
 
-        CommentResponseDto comment = commentService.saveComment(commentDto, currentUser);
+        CommentWithFirstReplyResponseDto comment = commentService.saveComment(commentDto, currentUser);
 
         return ResponseEntity.ok(new ApiResponse<>("댓글 작성 성공", HttpStatus.OK.value(), comment));
     }
 
     @Operation(summary = "댓글 수정", description = "댓글 ID와 댓글 내용으로 해당 댓글을 수정합니다.")
     @PatchMapping("/{commentId}")
-    public ResponseEntity<ApiResponse<CommentResponseDto>> updateComment(@PathVariable long commentId,
-                                                                         @RequestBody CommentUpdateRequestDto commentDto,
-                                                                         @AuthenticationPrincipal Users currentUser) {
+    public ResponseEntity<ApiResponse<CommentWithFirstReplyResponseDto>> updateComment(@PathVariable long commentId,
+                                                                                       @RequestBody CommentUpdateRequestDto commentDto,
+                                                                                       @AuthenticationPrincipal Users currentUser) {
 
         commentDto.setCommentId(commentId);
-        CommentResponseDto updatedComment = commentService.updateComment(commentDto, currentUser);
+        CommentWithFirstReplyResponseDto updatedComment = commentService.updateComment(commentDto, currentUser);
 
         return ResponseEntity.ok(new ApiResponse<>("댓글 수정 성공", HttpStatus.OK.value(), updatedComment));
     }

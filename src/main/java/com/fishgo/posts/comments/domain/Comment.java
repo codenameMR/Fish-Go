@@ -52,6 +52,12 @@ public class Comment {
     @Column(name = "like_count", nullable = false)
     private int likeCount;
 
+    // 댓글 상태
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    @Builder.Default
+    private CommentStatus status = CommentStatus.ACTIVE;
+
     // 부모 댓글 (NULL이면 최상위 댓글)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
@@ -69,7 +75,6 @@ public class Comment {
     // 1:1 멘션
     @OneToOne(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
     private CommentMention mention; // 단일 멘션
-
 
     @PrePersist
     public void prePersist() {

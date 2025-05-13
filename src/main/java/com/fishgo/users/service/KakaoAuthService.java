@@ -88,14 +88,16 @@ public class KakaoAuthService {
             throw new CustomException(ErrorCode.ALREADY_REGISTERED.getCode(), "다른 경로로 가입된 이메일 입니다.");
         }
 
+        usersService.validateWithdrawStatus(user);
+
         // JWT 생성
         JwtRequestDto jwtRequestDto = userMapper.toJwtRequestDto(user);
         String accessToken = jwtUtil.generateAccessToken(jwtRequestDto);
         String refreshToken = jwtUtil.generateRefreshToken(jwtRequestDto);
 
         // 쿠키에 저장
-        response.addCookie(usersService.registerToken("refreshToken", refreshToken));
-        response.addCookie(usersService.registerToken("accessToken", accessToken));
+        response.addCookie(jwtUtil.registerToken("refreshToken", refreshToken));
+        response.addCookie(jwtUtil.registerToken("accessToken", accessToken));
 
         // 최종 메시지
         return userMapper.toUserResponseDto(user);

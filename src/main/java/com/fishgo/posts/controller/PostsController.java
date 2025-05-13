@@ -79,14 +79,15 @@ public class PostsController {
                                                                    @AuthenticationPrincipal Users currentUser) throws FileSystemException {
 
         List<ImageDto> imageList = null;
-        // 업로드할 이미지가 있으면 업로드 처리
-        if(images != null && !images.isEmpty()){
-            imageList = postsService.uploadImages(postId, images, currentUser);
-        }
 
         // 삭제할 이미지가 있으면 삭제 처리
         if(deleteImageIds != null && !deleteImageIds.isEmpty()) {
             imageList = postsService.deleteImages(postId, deleteImageIds, currentUser);
+        }
+
+        // 업로드할 이미지가 있으면 업로드 처리
+        if(images != null && !images.isEmpty()){
+            imageList = postsService.uploadImages(postId, images, currentUser);
         }
 
         // 아무 작업도 수행하지 않은경우 400

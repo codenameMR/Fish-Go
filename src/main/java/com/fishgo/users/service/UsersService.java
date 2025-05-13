@@ -7,11 +7,13 @@ import com.fishgo.common.constants.UploadPaths;
 import com.fishgo.common.exception.CustomException;
 import com.fishgo.common.service.ImageService;
 import com.fishgo.common.util.ImagePathHelper;
+import com.fishgo.common.util.ImageValidator;
 import com.fishgo.common.util.JwtUtil;
 import com.fishgo.common.util.NicknameGenerator;
 import com.fishgo.posts.comments.domain.Comment;
-import com.fishgo.posts.comments.dto.CommentResponseDto;
+import com.fishgo.posts.comments.domain.CommentStatus;
 import com.fishgo.posts.comments.dto.CommentStatsDto;
+import com.fishgo.posts.comments.dto.CommentWithFirstReplyResponseDto;
 import com.fishgo.posts.comments.dto.mapper.CommentMapper;
 import com.fishgo.posts.comments.repository.CommentRepository;
 import com.fishgo.posts.domain.Posts;
@@ -21,13 +23,13 @@ import com.fishgo.posts.dto.PostStatsDto;
 import com.fishgo.posts.dto.mapper.PostsMapper;
 import com.fishgo.posts.respository.PostsRepository;
 import com.fishgo.users.domain.Profile;
+import com.fishgo.users.domain.UserStatus;
 import com.fishgo.users.domain.Users;
 import com.fishgo.users.dto.*;
 import com.fishgo.users.dto.mapper.UserMapper;
 import com.fishgo.users.repository.ProfileRepository;
 import com.fishgo.users.repository.UsersRepository;
 import jakarta.mail.MessagingException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +38,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +46,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.nio.file.FileSystemException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -178,24 +182,21 @@ public class UsersService {
         if(!passwordEncoder.matches(usersDto.getPassword(), user.getPassword())){
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
+        // 탈퇴 유예 기간 지났는지 검사.
+        validateWithdrawStatus(user);
+
         UserResponseDto userResponseDto = userMapper.toUserResponseDto(user);
         JwtRequestDto jwtRequestDto = userMapper.toJwtRequestDto(user);
 
-        // 토큰 생성
-        String accessToken = jwtUtil.generateAccessToken(jwtRequestDto);
-        String refreshToken = jwtUtil.generateRefreshToken(jwtRequestDto);
-
-        // Refresh, Access Token을 쿠키에 저장
-        response.addCookie(registerToken("refreshToken", refreshToken));
-        response.addCookie(registerToken("accessToken", accessToken));
+        jwtUtil.setTokenCookie(user.getStatus(), jwtRequestDto, response);
 
         return userResponseDto;
     }
 
     public void logoutUser(HttpServletResponse response, String refreshToken, String accessToken) {
         // 쿠키 만료시켜서 삭제
-        response.addCookie(invalidateToken("refreshToken"));
-        response.addCookie(invalidateToken("accessToken"));
+        response.addCookie(jwtUtil.invalidateToken("refreshToken"));
+        response.addCookie(jwtUtil.invalidateToken("accessToken"));
 
         // AccessToken 블랙리스트 등록
         redisTemplate.opsForValue().set(JwtProperties.BLACKLIST_PREFIX_ACCESS.getValue() + accessToken,
@@ -211,17 +212,41 @@ public class UsersService {
     }
 
     @Transactional
-    public void deleteUser(HttpServletResponse response, Users currentUser)  {
+    public void withDrawUser(HttpServletResponse response, Users currentUser)  {
 
-        long userId = currentUser.getId();
-        log.debug("deleteUser userId : {}", userId);
+        Users persistedUser = findByUserId(currentUser.getId());
+        long userId = persistedUser.getId();
+
+        log.debug("withDrawUser userId : {}", userId);
 
         // 쿠키 만료시켜서 삭제
-        response.addCookie(invalidateToken("refreshToken"));
-        response.addCookie(invalidateToken("accessToken"));
+        response.addCookie(jwtUtil.invalidateToken("refreshToken"));
+        response.addCookie(jwtUtil.invalidateToken("accessToken"));
 
-        usersRepository.deleteById(userId);
-        log.debug("deleteUser successful userId : {}", userId);
+        // 탈퇴 요청 상태 변경
+        persistedUser.setStatus(UserStatus.WITHDRAW_REQUEST);
+        persistedUser.setWithdrawRequestedAt(LocalDateTime.now());
+
+        // 사용자의 게시글 및 댓글 비활성화 처리
+        postsRepository.updatePostsIsActiveByUserId(userId, false);
+        commentRepository.updateCommentStatusByUserId(userId, CommentStatus.USER_WITHDRAW);
+
+        log.debug("withDrawUser successful userId : {}", userId);
+    }
+
+    @Transactional
+    public void cancelWithdraw(Users currentUser) {
+        Users persistedUser = findByUserId(currentUser.getId());
+        long userId = persistedUser.getId();
+
+        // 탈퇴 취소 요청 상태 변경
+        persistedUser.setStatus(UserStatus.ACTIVE);
+        persistedUser.setWithdrawRequestedAt(null);
+
+        // 사용자의 게시글 및 댓글 재활성화 처리
+        postsRepository.updatePostsIsActiveByUserId(userId, true);
+        commentRepository.updateCommentStatusByUserId(userId, CommentStatus.ACTIVE);
+
     }
 
     public void refreshToken(HttpServletResponse response, String refreshToken) {
@@ -233,9 +258,9 @@ public class UsersService {
         Users user = findByUserId(userId);
         JwtRequestDto jwtRequestDto = userMapper.toJwtRequestDto(user);
 
-        if (jwtUtil.isTokenValid(refreshToken, jwtRequestDto)) {
+        if (jwtUtil.isTokenValid(refreshToken)) {
             String newAccessToken = jwtUtil.generateAccessToken(jwtRequestDto);
-            response.addCookie(registerToken("accessToken", newAccessToken));
+            response.addCookie(jwtUtil.registerToken("accessToken", newAccessToken));
         } else {
             throw new CustomException(ErrorCode.INVALID_TOKEN.getCode(), "유효하지 않은 토큰입니다.");
         }
@@ -337,9 +362,8 @@ public class UsersService {
     @Transactional
     public String updateProfileImg(Users currentUser, MultipartFile profileImg) {
 
-        if(!imageService.isImageFile(profileImg)){
-            throw new IllegalArgumentException("이미지 형식이 아닙니다.");
-        }
+        ImageValidator.validate(profileImg);
+
         String profileImgName = imageService.uploadProfileImage(profileImg, currentUser.getId());
 
         currentUser.getProfile().setProfileImg(profileImgName);
@@ -365,40 +389,6 @@ public class UsersService {
         currentUser.getProfile().setName(profileName);
 
         usersRepository.save(currentUser);
-    }
-
-    /**
-     * 토큰 무효화
-     * @param token refreshToken or AccessToken
-     */
-    private Cookie invalidateToken(String token) {
-
-        Cookie cookie = new Cookie(token, null);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0); // 즉시 만료
-
-        return cookie;
-    }
-
-    /**
-     * 토큰 쿠키 생성
-     * @param tokenType refreshToken or accessToken
-     * @param tokenValue 토큰 값
-     */
-    public Cookie registerToken(String tokenType, String tokenValue) {
-        int maxAge = tokenType.equals("accessToken") ?
-                JwtProperties.ACCESS_TOKEN_EXPIRATION.getIntValue() / 1000
-                : JwtProperties.REFRESH_TOKEN_EXPIRATION.getIntValue() / 1000;
-
-        Cookie cookie = new Cookie(tokenType, tokenValue);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false); // 추후 정식 배포 후 true로 변경(https)
-        cookie.setPath("/");
-        cookie.setMaxAge(maxAge);
-
-        return cookie;
     }
 
     private Profile setRegisteredProfile() {
@@ -445,7 +435,7 @@ public class UsersService {
         return myPostsEntity.map(postsMapper::toPostListResponseDto);
     }
 
-    public Page<CommentResponseDto> getMyComments(Pageable pageable, Users currentUser) {
+    public Page<CommentWithFirstReplyResponseDto> getMyComments(Pageable pageable, Users currentUser) {
         Page<Comment> page = commentRepository.findAllByUser_Id(currentUser.getId(), pageable);
 
         return page.map(commentMapper::toResponse);
@@ -455,4 +445,51 @@ public class UsersService {
     public List<PinpointDto> getMyVisitedPlace(Users currentUser) {
         return postsRepository.findMyPinpoint(currentUser.getId()).orElse(List.of());
     }
+
+    /**
+     * 유저 상태 변경 스케줄러
+     * 탈퇴 신청 후 7일이 지났으면 DELETED로 변경 후
+     * 이메일 null처리
+     */
+    @Scheduled(cron = "0 0 0 * * *") // 매일 자정에 실행
+    public void processWithdrawnUsers() {
+        LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
+
+        // withdrawRequestedAt이 7일 이전인 사용자들을 찾아서 상태를 DELETED로 변경
+        List<Users> withdrawnUsers = usersRepository.findByWithdrawRequestedAtBeforeAndStatus(
+                sevenDaysAgo,
+                UserStatus.WITHDRAW_REQUEST
+        );
+
+        for (Users user : withdrawnUsers) {
+            user.setEmail(null);
+            user.setStatus(UserStatus.DELETED);
+        }
+
+        usersRepository.saveAll(withdrawnUsers);
+    }
+
+    /**
+     * 스케줄러 돌아가기 전 로그인 시 탈퇴 유예기간 7일 지났으면
+     * 즉시 탈퇴처리
+     * @param user 로그인한 유저
+     */
+    public void validateWithdrawStatus(Users user) {
+        if (user.getStatus() == UserStatus.WITHDRAW_REQUEST) {
+            LocalDateTime withdrawRequestedAt = user.getWithdrawRequestedAt();
+            if (withdrawRequestedAt != null) {
+                LocalDateTime sevenDaysAfterRequest = withdrawRequestedAt.plusDays(7);
+
+                if (LocalDateTime.now().isAfter(sevenDaysAfterRequest)) {
+                    // 7일이 지났으면 상태를 DELETED로 변경
+                    user.setEmail(null);
+                    user.setStatus(UserStatus.DELETED);
+                    usersRepository.save(user);
+                    throw new IllegalStateException("탈퇴 처리된 계정입니다.");
+                }
+            }
+        }
+    }
+
+
 }

@@ -52,10 +52,10 @@ public class Posts {
     @Column(name = "view_count", nullable = false)
     private int viewCount;
 
-    @Column
+    @Column(name = "location")
     private String location;
 
-    @Column
+    @Column(name = "fish_type")
     private String fishType;
 
     @Column(name = "fish_size")
@@ -67,9 +67,16 @@ public class Posts {
     @Column(name = "lon")
     private Double lon;
 
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
+    private boolean active = true;
+
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

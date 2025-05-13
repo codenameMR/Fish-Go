@@ -28,6 +28,12 @@ public class UserResponseDto {
     @Schema(description = "사용자 프로필 이미지")
     private String profileImg;
 
+    @Schema(description = "사용자 상태", example = "ACTIVE / WITHDRAW_REQUEST / DELETED")
+    private String status;
+
+    @Schema(description = "영구 삭제까지 남은 일 시 분")
+    private WithdrawCountdownDto withdrawCountdown;
+
     public void setProfileImg(String profileImg) {
         this.profileImg = ImagePathHelper.buildProfileImagePath(profileImg, id);
     }

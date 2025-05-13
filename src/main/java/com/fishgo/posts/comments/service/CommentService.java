@@ -1,9 +1,11 @@
 package com.fishgo.posts.comments.service;
 
-import com.fishgo.badge.event.CommentCreatedEvent;
+import com.fishgo.common.constants.ErrorCode;
+import com.fishgo.common.exception.CustomException;
 import com.fishgo.common.service.PageService;
 import com.fishgo.posts.comments.domain.Comment;
 import com.fishgo.posts.comments.domain.CommentMention;
+import com.fishgo.posts.comments.domain.CommentStatus;
 import com.fishgo.posts.comments.dto.*;
 import com.fishgo.posts.comments.dto.mapper.CommentMapper;
 import com.fishgo.posts.comments.dto.projection.ParentCommentProjection;
@@ -40,24 +42,30 @@ public class CommentService {
     private final ApplicationEventPublisher eventPublisher;
 
     /**
-     * 댓글 및 해당 댓글의 첫번째 댓글, 그리고 남은 대댓글 개수를 반환한다.
+     * 댓글 및 해당 댓글의 첫번째 대댓글, 그리고 남은 대댓글 개수를 반환한다.
      * @param postId 게시글 아이디
      * @param pageable 페이지에이블 객체
      * @param currentUser 현재 접속 중인 유저 객체
      * @return 페이지에이블 객체
      */
     @Transactional(readOnly = true)
-    public Page<CommentResponseDto> getParentCommentsWithFirstReply(Long postId, Pageable pageable, Users currentUser) {
+    public Page<CommentWithFirstReplyResponseDto> getParentCommentsWithFirstReply(Long postId, Pageable pageable, Users currentUser) {
+
+        boolean isPostActive = postsService.findById(postId).isActive();
+        if(!isPostActive) {
+            throw new CustomException(ErrorCode.DELETED_CONTENT_REQUEST_DENIED.getCode(),
+                    "삭제 처리된 게시물 입니다.");
+        }
 
         // 1) Projection으로 조회
         Page<ParentCommentProjection> projectionPage =
                 commentRepository.findParentCommentsWithFirstReply(postId, pageable);
 
         // 2) Projection -> DTO 변환
-        Page<CommentResponseDto> dtoPage = projectionPage.map(projection -> {
+        Page<CommentWithFirstReplyResponseDto> dtoPage = projectionPage.map(projection -> {
 
             // 2-1) 부모 댓글 기본 정보 셋팅
-            CommentResponseDto parentDto = commentMapper.projectionToResponse(projection);
+            CommentWithFirstReplyResponseDto parentDto = commentMapper.projectionToResponse(projection);
 
             // 남은 대댓글 수
             parentDto.setRemainingReplyCount(
@@ -69,7 +77,7 @@ public class CommentService {
                 Comment firstReply = commentRepository.findById(projection.getFirstReplyId())
                         .orElse(null);
                 if (firstReply != null) {
-                    ReplyResponseDto replyDto = commentMapper.toReplyResponse(firstReply);
+                    CommentResponseDto replyDto = commentMapper.toReplyResponse(firstReply);
                     parentDto.setFirstReply(replyDto);
                 }
             }
@@ -97,13 +105,13 @@ public class CommentService {
 
         long remainingRepliesCount = pageService.getRemainingCount(replies);
 
-        Page<ReplyResponseDto> replyDtoPage = replies.map(commentMapper::toReplyResponse);
+        Page<CommentResponseDto> replyDtoPage = replies.map(commentMapper::toReplyResponse);
 
         // 댓글 가져올 때 첫번째 대댓글을 같이 가져오므로
         // 첫 페이지(0번)일 경우 첫 번째 대댓글 제거
         if(pageable.getPageNumber() == 0 && !replyDtoPage.isEmpty()) {
             // 기존 Page의 내용을 List로 복사
-            List<ReplyResponseDto> contentList = new ArrayList<>(replyDtoPage.getContent());
+            List<CommentResponseDto> contentList = new ArrayList<>(replyDtoPage.getContent());
             contentList.removeFirst(); // 첫 번째 댓글 제거
 
             // 수정된 List를 다시 Page로 감싼다. totalElements는 기존과 동일하게 사용 가능
@@ -130,7 +138,7 @@ public class CommentService {
      * @return 댓글 응답 객체
      */
     @Transactional
-    public CommentResponseDto saveComment(CommentCreateRequestDto dto, Users currentUser) {
+    public CommentWithFirstReplyResponseDto saveComment(CommentCreateRequestDto dto, Users currentUser) {
 
         Comment comment = commentMapper.toCreateEntity(dto);
 
@@ -143,6 +151,11 @@ public class CommentService {
         if (dto.getParentId() != null) {
             Comment parentComment = commentRepository.findById(dto.getParentId())
                     .orElseThrow(() -> new IllegalArgumentException("부모 댓글이 존재하지 않습니다."));
+
+            if(parentComment.getStatus() != CommentStatus.ACTIVE) {
+                throw new CustomException(ErrorCode.DELETED_CONTENT_REQUEST_DENIED.getCode(),
+                        "삭제 된 댓글에는 대댓글을 달 수 없습니다.");
+            }
             comment.setParent(parentComment);
         }
 
@@ -168,7 +181,7 @@ public class CommentService {
      * @return 댓글 응답 객체
      */
     @Transactional
-    public CommentResponseDto updateComment(CommentUpdateRequestDto dto, Users currentUser) {
+    public CommentWithFirstReplyResponseDto updateComment(CommentUpdateRequestDto dto, Users currentUser) {
         // 1) DB에서 댓글 엔티티 조회
         Comment comment = commentRepository.findById(dto.getCommentId())
                 .orElseThrow(() -> new IllegalArgumentException("해당 댓글이 존재하지 않습니다."));
@@ -196,6 +209,7 @@ public class CommentService {
      * @param commentId 댓글 아이디
      * @param currentUser 현재 접속중인 유저 객체
      */
+    @Transactional
     public void deleteComment(Long commentId, Users currentUser) {
 
         Comment comment = commentRepository.findById(commentId)
@@ -204,10 +218,8 @@ public class CommentService {
         if (!comment.getUser().getId().equals(currentUser.getId())) {
             throw new SecurityException("본인이 작성한 댓글만 수정할 수 있습니다.");
         }
-        // 연결된 좋아요(CommentLike) 정보 먼저 삭제
-        commentLikeRepository.deleteAllByCommentId(commentId);
 
-        commentRepository.deleteById(commentId);
+        comment.setStatus(CommentStatus.DELETED_BY_USER);
     }
 
     /**
@@ -215,8 +227,8 @@ public class CommentService {
      * @param list 조회가 완료된 페이지네이션 댓글 응답 객체
      * @param userId 유저 아이디
      */
-    private void fillLikeStatusRecursively(Page<CommentResponseDto> list, Long userId) {
-        for (CommentResponseDto resp : list) {
+    private void fillLikeStatusRecursively(Page<CommentWithFirstReplyResponseDto> list, Long userId) {
+        for (CommentWithFirstReplyResponseDto resp : list) {
             boolean liked = commentLikeRepository.existsByCommentIdAndUserId(resp.getId(), userId);
             resp.setLiked(liked);
 
@@ -227,18 +239,18 @@ public class CommentService {
         }
     }
 
-    private void fillLikeStatusForReplies(Page<ReplyResponseDto> list, Long userId) {
-        for (ReplyResponseDto resp : list) {
+    private void fillLikeStatusRecursively(CommentResponseDto dto, Long userId) {
+        boolean liked = commentLikeRepository.existsByCommentIdAndUserId(dto.getId(), userId);
+        dto.setLiked(liked);
+
+    }
+
+    private void fillLikeStatusForReplies(Page<CommentResponseDto> list, Long userId) {
+        for (CommentResponseDto resp : list) {
             boolean liked = commentLikeRepository.existsByCommentIdAndUserId(resp.getId(), userId);
             resp.setLiked(liked);
 
         }
-    }
-
-    private void fillLikeStatusRecursively(ReplyResponseDto dto, Long userId) {
-            boolean liked = commentLikeRepository.existsByCommentIdAndUserId(dto.getId(), userId);
-            dto.setLiked(liked);
-
     }
 
 }

@@ -1,8 +1,11 @@
 package com.fishgo.users.repository;
 
+import com.fishgo.users.domain.UserStatus;
 import com.fishgo.users.domain.Users;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface UsersRepository extends JpaRepository<Users, Long> {
@@ -14,8 +17,12 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
 
     boolean existsByProfile_Name(String name);
 
-    void deleteById(long userId);
-
     Optional<Users> findByProfile_Name(String name);
+
+    List<Users> findByWithdrawRequestedAtBeforeAndStatus(
+            LocalDateTime dateTime,
+            UserStatus status
+    );
+
 
 }

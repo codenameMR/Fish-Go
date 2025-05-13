@@ -1,7 +1,6 @@
 package com.fishgo.users.controller;
 
 import com.fishgo.common.response.ApiResponse;
-import com.fishgo.common.util.JwtUtil;
 import com.fishgo.users.domain.Users;
 import com.fishgo.users.dto.LoginRequestDto;
 import com.fishgo.users.dto.SignupRequestDto;
@@ -99,20 +98,28 @@ public class AuthController {
     @Operation(summary = "로그아웃", description = "FE에서 AccessToken, BE에서는 RefreshToken을 삭제합니다.")
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(HttpServletResponse response,
-                                                      @CookieValue(name = "refreshToken") String refreshToken,
+                                                      @CookieValue(name = "refreshToken", required = false) String refreshToken,
                                                       @CookieValue(name = "accessToken") String accessToken) {
         usersService.logoutUser(response, refreshToken, accessToken);
 
         return ResponseEntity.ok(new ApiResponse<>("로그아웃 성공 하였습니다.", HttpStatus.OK.value()));
     }
 
-    @Operation(summary = "회원탈퇴")
-    @PostMapping("/delete")
-    public ResponseEntity<ApiResponse<String>> delete(HttpServletResponse response,
+    @Operation(summary = "회원탈퇴 요청", description = "7일의 유예기간이 주어지며, 7일 후 삭제처리 됩니다.")
+    @DeleteMapping("/withdraw")
+    public ResponseEntity<ApiResponse<String>> withdraw(HttpServletResponse response,
                                                       @AuthenticationPrincipal Users currentUser) {
-        usersService.deleteUser(response, currentUser);
+        usersService.withDrawUser(response, currentUser);
 
         return ResponseEntity.ok(new ApiResponse<>("회원탈퇴가 성공적으로 완료되었습니다.", HttpStatus.OK.value()));
+    }
+
+    @Operation(summary = "회원탈퇴 철회 요청", description = "회원탈퇴를 철회 합니다. 성공 후에는 다시 로그인 해야합니다.")
+    @PatchMapping("/cancelWithdraw")
+    public ResponseEntity<ApiResponse<String>> cancelWithdraw(@AuthenticationPrincipal Users currentUser) {
+        usersService.cancelWithdraw(currentUser);
+
+        return ResponseEntity.ok(new ApiResponse<>("회원탈퇴 철회가 성공적으로 완료되었습니다.", HttpStatus.OK.value()));
     }
 
     @Operation(summary = "액세스 토큰 갱신", description = "RefreshToken을 통해 새로운 AccessToken 발급.")

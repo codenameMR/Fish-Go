@@ -7,11 +7,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.imageio.ImageIO;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
-import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -21,47 +20,6 @@ public class ImageService {
 
     @Value("${user.upload.path}")
     String uploadPath;
-
-    /**
-     * MultipartFile이 실제로 이미지인지 확인한다.
-     *
-     * @param files 이미지 여부를 확인할 대상 파일 리스트
-     * @return 이미지이면 true, 아니면 false
-     */
-    public boolean isImageFile(List<MultipartFile> files) {
-
-        for (MultipartFile file : files) {
-
-            if (file == null || file.isEmpty()) {
-                return false;
-            }
-            try {
-                ImageIO.read(file.getInputStream());
-            } catch (IOException e) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * MultipartFile이 실제로 이미지인지 확인한다.
-     *
-     * @param file 이미지 여부를 확인할 대상 파일
-     * @return 이미지이면 true, 아니면 false
-     */
-    public boolean isImageFile(MultipartFile file) {
-
-            if (file == null || file.isEmpty()) {
-                return false;
-            }
-            try {
-                ImageIO.read(file.getInputStream());
-            } catch (IOException e) {
-                return false;
-            }
-        return true;
-    }
 
     /**
      * 게시글 이미지 업로드
@@ -137,6 +95,14 @@ public class ImageService {
                 throw new RuntimeException("기존 이미지 삭제 실패", e);
             }
         }
+    }
+
+    public long countFilesInDirectory(String directoryPath) {
+        File directory = new File(directoryPath);
+        if (!directory.exists()) {
+            return 0;
+        }
+        return Objects.requireNonNull(directory.listFiles()).length;
     }
 
 

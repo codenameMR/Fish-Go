@@ -1,11 +1,13 @@
 package com.fishgo.posts.comments.repository;
 
 import com.fishgo.posts.comments.domain.Comment;
+import com.fishgo.posts.comments.domain.CommentStatus;
 import com.fishgo.posts.comments.dto.CommentStatsDto;
 import com.fishgo.posts.comments.dto.projection.ParentCommentProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -38,6 +40,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
             c.created_at        AS created_at,
             c.updated_at        AS updated_at,
             c.like_count        AS like_count,
+            c.status            AS status,
             p.profile_img       AS profile_img,
             p."name" 	        AS "name",
             rr.reply_id         AS first_reply_id,
@@ -74,6 +77,11 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     );
 
     Page<Comment> findAllByUser_Id(Long id, Pageable pageable);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Comment c SET c.status = :status WHERE c.user.id = :userId")
+    void updateCommentStatusByUserId(Long userId, CommentStatus status);
+
 
     @Query("SELECT COUNT(c) FROM Comment c WHERE c.user.id = :userId")
     Long countByUserId(@Param("userId") Long userId);

@@ -6,10 +6,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fishgo.common.constants.ErrorCode;
 import com.fishgo.common.exception.CustomException;
 import com.fishgo.posts.comments.domain.Comment;
+import com.fishgo.posts.comments.domain.CommentStatus;
 import com.fishgo.posts.comments.dto.CommentCreateRequestDto;
 import com.fishgo.posts.comments.dto.CommentMentionDto;
+import com.fishgo.posts.comments.dto.CommentWithFirstReplyResponseDto;
 import com.fishgo.posts.comments.dto.CommentResponseDto;
-import com.fishgo.posts.comments.dto.ReplyResponseDto;
 import com.fishgo.posts.comments.dto.projection.ParentCommentProjection;
 import com.fishgo.users.domain.Users;
 import org.mapstruct.AfterMapping;
@@ -38,6 +39,7 @@ public interface CommentMapper {
     @Mapping(target = "likes", ignore = true)
     @Mapping(target = "mention", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "status", ignore = true)
     Comment toCreateEntity(CommentCreateRequestDto dto);
 
 
@@ -53,15 +55,17 @@ public interface CommentMapper {
     @Mapping(target = "createdAt", source = "comment.createdAt")
     @Mapping(target = "parentId", source = "comment.parent.id")
     @Mapping(target = "likeCount", source = "comment.likeCount")
+    @Mapping(target = "status", source = "comment.status")
     @Mapping(target = "liked", ignore = true)
     @Mapping(target = "firstReply", ignore = true)
     @Mapping(target = "remainingReplyCount", ignore = true)
     @Mapping(target = "mentionedUser", ignore = true)
-    CommentResponseDto toResponse(Comment comment);
+    CommentWithFirstReplyResponseDto toResponse(Comment comment);
 
     @AfterMapping
-    default void setMentionedUser(@MappingTarget CommentResponseDto response, Comment comment) {
+    default void afterMappingForCommentWithFirstReplyResponseDto(@MappingTarget CommentWithFirstReplyResponseDto response, Comment comment) {
         response.setMentionedUser(toMentionDto(comment));
+        setContentsByStatus(response, comment.getStatus());
     }
 
 
@@ -79,11 +83,12 @@ public interface CommentMapper {
     @Mapping(target = "likeCount", source = "comment.likeCount")
     @Mapping(target = "liked", ignore = true)
     @Mapping(target = "mentionedUser", ignore = true)
-    ReplyResponseDto toReplyResponse(Comment comment);
+    CommentResponseDto toReplyResponse(Comment comment);
 
     @AfterMapping
-    default void setMentionedUserForReply(@MappingTarget ReplyResponseDto response, Comment comment) {
+    default void setMentionedUserForReply(@MappingTarget CommentResponseDto response, Comment comment) {
         response.setMentionedUser(toMentionDto(comment));
+        setContentsByStatus(response, comment.getStatus());
     }
 
 
@@ -100,10 +105,10 @@ public interface CommentMapper {
     @Mapping(target = "firstReply", ignore = true)
     @Mapping(target = "remainingReplyCount", ignore = true)
     @Mapping(target = "mentionedUser", ignore = true)
-    CommentResponseDto projectionToResponse(ParentCommentProjection projection);
+    CommentWithFirstReplyResponseDto projectionToResponse(ParentCommentProjection projection);
 
     @AfterMapping
-    default void setMentionedUser(@MappingTarget CommentResponseDto response, ParentCommentProjection projection) {
+    default void setMentionedUser(@MappingTarget CommentWithFirstReplyResponseDto response, ParentCommentProjection projection) {
         // {"mentionUserId":123,"mentionUserName":"foo"}
         String mentionedUserJson = projection.getMentionedUser();
 
@@ -128,6 +133,11 @@ public interface CommentMapper {
         }
     }
 
+    @AfterMapping
+    default void setStatusByProjection(@MappingTarget CommentWithFirstReplyResponseDto response, ParentCommentProjection projection){
+        setContentsByStatus(response, projection.getStatus());
+    }
+
     private CommentMentionDto toMentionDto(Comment comment){
         if (comment.getMention() == null
                 || comment.getMention().getMentionedUser() == null) {
@@ -140,5 +150,13 @@ public interface CommentMapper {
         dto.setName(mentionedUser.getProfile().getName());
 
         return dto;
+    }
+
+    private void setContentsByStatus(CommentResponseDto response, CommentStatus status) {
+        switch (status) {
+            case USER_WITHDRAW -> response.setContents("탈퇴한 사용자의 댓글입니다.");
+            case DELETED_BY_ADMIN -> response.setContents("관리자에 의해 삭제된 댓글입니다.");
+            case DELETED_BY_USER -> response.setContents("사용자에 의해 삭제된 댓글입니다.");
+        }
     }
 }

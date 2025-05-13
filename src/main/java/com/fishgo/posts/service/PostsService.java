@@ -6,6 +6,7 @@ import com.fishgo.common.constants.UploadPaths;
 import com.fishgo.common.exception.CustomException;
 import com.fishgo.common.service.ImageService;
 import com.fishgo.common.service.RedisService;
+import com.fishgo.common.util.ImageValidator;
 import com.fishgo.posts.domain.Hashtag;
 import com.fishgo.posts.domain.PostImage;
 import com.fishgo.posts.domain.Posts;
@@ -53,7 +54,7 @@ public class PostsService {
      * @return 게시글 목록 응답 DTO
      */
     public Page<PostListResponseDto> getAllPosts(Pageable pageable) {
-        Page<Posts> page = postsRepository.findAll(pageable);
+        Page<Posts> page = postsRepository.findAllByActive(true, pageable);
 
         return page.map(postsMapper::toPostListResponseDto);
     }
@@ -88,7 +89,7 @@ public class PostsService {
     }
 
     @Transactional
-    public List<ImageDto> uploadImages(Long postId, List<MultipartFile> images, Users currentUser) throws FileSystemException{
+    public List<ImageDto> uploadImages(Long postId, List<MultipartFile> images, Users currentUser) throws FileSystemException {
         Posts post = findById(postId);
 
         if(!Objects.equals(post.getUsers().getId(), currentUser.getId())){
@@ -96,22 +97,26 @@ public class PostsService {
         }
 
         // 이미지 서버 및 DB에 저장
-        if(imageService.isImageFile(images)) {
-
-            // 이미지가 10장 넘어가면 예외 처리
-            if (images.size() > 10) {
-                throw new RuntimeException("최대 10장까지만 업로드 가능합니다.");
-            }
-            for (MultipartFile image : images) {
-                // 업로드 처리
-                String savedFileName = imageService.uploadPostImage(image, post.getId());
-
-                // DB 저장
-                post.addImage(new PostImage(savedFileName));
-            }
-            // 이미지 id를 가져오기 위해 flush 처리
-            postsRepository.flush();
+        for(MultipartFile image : images){
+            ImageValidator.validate(image);
         }
+        // 기존 이미지 개수 카운팅
+        String postDirectory = uploadPath + "posts/" + postId;
+        long countImages = imageService.countFilesInDirectory(postDirectory);
+
+        // 이미지가 10장 넘어가면 예외 처리
+        if (images.size() + countImages > 10) {
+            throw new RuntimeException("최대 10장까지만 업로드 가능합니다.");
+        }
+        for (MultipartFile image : images) {
+            // 업로드 처리
+            String savedFileName = imageService.uploadPostImage(image, post.getId());
+
+            // DB 저장
+            post.addImage(new PostImage(savedFileName));
+        }
+        // 이미지 id를 가져오기 위해 flush 처리
+        postsRepository.flush();
 
         return postsMapper.toDto(post).getImages();
     }
@@ -210,8 +215,7 @@ public class PostsService {
             throw new IllegalArgumentException("작성자만 수정 가능합니다.");
         }
 
-        postsLikeRepository.deleteAllByPostId(postId);
-        postsRepository.delete(post);
+        post.setActive(false);
     }
 
     public Posts findById(long postId) {
@@ -227,6 +231,11 @@ public class PostsService {
      */
     public PostsDto getPostDetail(Long postId, String redisUserKey, Users currentUser) {
         Posts post = findById(postId);
+
+        if(!post.isActive()){
+            throw new CustomException(ErrorCode.USER_WITHDRAWN_POST_ACCESS_DENIED.getCode(),
+                    "탈퇴한 사용자의 게시글은 볼 수 없습니다.");
+        }
 
         // Redis 조회 키 생성
         String redisKey = "postView:" + postId + ":" + redisUserKey;
