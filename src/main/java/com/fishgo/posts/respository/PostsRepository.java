@@ -84,15 +84,6 @@ public interface PostsRepository extends JpaRepository<Posts, Long> {
            AND p.lon IS NOT NULL
            """)
     Optional<List<PinpointDto>> findMyPinpoint(@Param("userId") Long userId);
-    @Query("""
-           SELECT NEW com.fishgo.posts.dto.PinpointDto(
-           p.id, p.lat, p.lon)
-           FROM Posts p
-           WHERE p.users.id = :userId
-           AND p.lat IS NOT NULL
-           AND p.lon IS NOT NULL
-           """)
-    Optional<List<PinpointDto>> findMyPinpoint(@Param("userId") Long userId);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Posts p SET p.active = :isActive WHERE p.users.id = :userId")
@@ -113,10 +104,5 @@ public interface PostsRepository extends JpaRepository<Posts, Long> {
     @Query("SELECT DISTINCT MONTH(p.createdAt) FROM Posts p WHERE p.users.id = :userId")
     Set<Integer> findDistinctSeasonsByUserId(@Param("userId") Long userId);
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("UPDATE Posts p SET p.active = :isActive WHERE p.users.id = :userId")
-    void updatePostsIsActiveByUserId(Long userId, boolean isActive);
-
-    Page<Posts> findAllByActive(boolean isActive, Pageable pageable);
 
 }

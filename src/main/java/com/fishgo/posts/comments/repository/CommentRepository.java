@@ -28,7 +28,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
             SELECT
                 r.id AS reply_id,
                 r.parent_id,
-                ROW_NUMBER() OVER (PARTITION BY r.parent_id ORDER BY r.created_at ASC) AS rn,
+                ROW_NUMBER() OVER (PARTITION BY r.parent_id ORDER BY r.created_at) AS rn,
                 (COUNT(*) OVER (PARTITION BY r.parent_id) - 1) AS remaining_count
             FROM comment r
             WHERE r.parent_id IS NOT NULL
@@ -89,9 +89,5 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     @Query("SELECT COUNT(DISTINCT c.post.id) FROM Comment c WHERE c.user.id = :userId")
     Long countDistinctPostsCommentedByUserId(@Param("userId") Long userId);
 
-
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("UPDATE Comment c SET c.status = :status WHERE c.user.id = :userId")
-    void updateCommentStatusByUserId(Long userId, CommentStatus status);
 
 }
