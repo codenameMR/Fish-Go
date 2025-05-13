@@ -254,7 +254,7 @@ public class UsersService {
             throw new CustomException(ErrorCode.BLACKLISTED_TOKEN.getCode(), "블랙리스트 처리된 토큰입니다.");
         }
 
-        long userId = jwtUtil.extractUserId(refreshToken);
+        Long userId = jwtUtil.extractUserId(refreshToken);
         Users user = findByUserId(userId);
         JwtRequestDto jwtRequestDto = userMapper.toJwtRequestDto(user);
 

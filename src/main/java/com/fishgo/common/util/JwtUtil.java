@@ -67,7 +67,7 @@ public class JwtUtil {
     }
 
     // 토큰에서 사용자 이름 추출
-    public long extractUserId(String token) {
+    public Long extractUserId(String token) {
         return Long.parseLong(extractClaim(token, Claims::getSubject));
     }
 

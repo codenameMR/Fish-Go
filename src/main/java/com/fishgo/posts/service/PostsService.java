@@ -122,7 +122,7 @@ public class PostsService {
     }
 
     @Transactional
-    public List<ImageDto> deleteImages(Long postId, Set<Long> deleteImageIds, Users currentUser) {
+    public List<ImageDto> deleteImages(Long postId, ImageDeleteRequestDto deleteImageIds, Users currentUser) {
         Posts post = findById(postId);
 
         if(!Objects.equals(post.getUsers().getId(), currentUser.getId())){
@@ -134,7 +134,7 @@ public class PostsService {
 
         // 기존 이미지 중 삭제 할 ID 목록 필터링
         Set<PostImage> toRemove = oldPostImages.stream()
-                .filter(img -> deleteImageIds.contains(img.getId()))
+                .filter(img -> deleteImageIds.getImageIds().contains(img.getId()))
                 .collect(Collectors.toSet());
 
         // 제거 처리

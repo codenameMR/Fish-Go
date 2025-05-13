@@ -27,7 +27,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.FileSystemException;
 import java.util.List;
-import java.util.Set;
 
 @Tag(name = "게시글 API", description = "게시글 생성 및 수정, 검색 기능을 제공하는 API 입니다.")
 @RestController
@@ -90,7 +89,7 @@ public class PostsController {
     public ResponseEntity<ApiResponse<List<ImageDto>>> deleteImages(
             @PathVariable Long postId,
             @Parameter(description = "삭제할 이미지의 아이디 리스트 ex) [2,4,6]")
-            @RequestBody Set<Long> imageIds,
+            @RequestBody ImageDeleteRequestDto imageIds,
             @AuthenticationPrincipal Users currentUser) {
 
         List<ImageDto> remainingImages = postsService.deleteImages(postId, imageIds, currentUser);
