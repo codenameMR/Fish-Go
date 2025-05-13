@@ -22,6 +22,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -197,16 +198,73 @@ public class BadgeService {
         Long userId = post.getUsers().getId();
 
         // 첫 게시글 작성
-        if (postsRepository.countByUsersId(userId) == 1) {
-            BadgeNotificationDto notification = awardBadge(userId, BadgeCode.FIRST_POST.name());
-            if (notification != null) {
-                notifications.add(notification);
+        if (postsRepository.countByUsers_Id(userId) == 1) {
+            if(post.getFishType() == null) {
+                BadgeNotificationDto notification = awardBadge(userId, BadgeCode.FIRST_POST.name());
+                if (notification != null) {
+                    notifications.add(notification);
+                }
             }
         }
 
         // 큰 물고기
         if (post.getFishSize() != null && post.getFishSize() > 100) {
             BadgeNotificationDto notification = awardBadge(userId, BadgeCode.BIG_FISH_CATCHER.name());
+            if (notification != null) {
+                notifications.add(notification);
+            }
+        }
+
+        // 새벽 낚시
+        LocalDateTime postTime = post.getCreatedAt();
+        if(postTime.getHour() >= 4 && postTime.getHour() <= 7) {
+            BadgeNotificationDto notification = awardBadge(userId, BadgeCode.DAWN_FISHING.name());
+            if (notification != null) {
+                notifications.add(notification);
+            }
+        }
+
+        // 게시글 10개 이상
+        if (postsRepository.countByUsers_Id(userId) <= 10) {
+            if(post.getFishType() == null) {
+                BadgeNotificationDto notification = awardBadge(userId, BadgeCode.FISHING_BLOGGER.name());
+                if (notification != null) {
+                    notifications.add(notification);
+                }
+            }
+        }
+
+        // 50마리 이상
+        long fishCount = postsRepository.countByUsersIdAndFishTypeIsNotNull(userId);
+        if (fishCount >= 50) {
+            BadgeNotificationDto notification = awardBadge(userId, BadgeCode.FISHING_EXPERT.name());
+            if (notification != null) {
+                notifications.add(notification);
+            }
+        }
+
+        // 다양한 지역
+        if (post.getLocation() != null) {
+            long distinctLocations = postsRepository.countDistinctLocationsByUserId(userId);
+            if (distinctLocations >= 5) { // 5곳 이상
+                BadgeNotificationDto notification = awardBadge(userId, BadgeCode.REGIONAL_EXPLORER.name());
+                if (notification != null) {
+                    notifications.add(notification);
+                }
+            }
+        }
+
+
+        // 계절별
+        Set<Integer> seasons = postsRepository.findDistinctSeasonsByUserId(userId);
+        // 봄(3,4,5), 여름(6,7,8), 가을(9,10,11), 겨울(12,1,2)
+        boolean spring = seasons.contains(3) || seasons.contains(4) || seasons.contains(5);
+        boolean summer = seasons.contains(6) || seasons.contains(7) || seasons.contains(8);
+        boolean fall = seasons.contains(9) || seasons.contains(10) || seasons.contains(11);
+        boolean winter = seasons.contains(12) || seasons.contains(1) || seasons.contains(2);
+
+        if (spring && summer && fall && winter) {
+            BadgeNotificationDto notification = awardBadge(userId, BadgeCode.SEASONAL_FISHERMAN.name());
             if (notification != null) {
                 notifications.add(notification);
             }
