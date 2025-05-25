@@ -33,7 +33,13 @@
 | 형상 관리 | Git, GitHub                  |
 
 ---
-## 📁 프로젝트 구조
+
+## 📃 ERD (Entity Relationship Diagram)
+![ERD](/readme/erd.png)
+
+---
+
+## 📁 프로젝트 구조 (Project Structure)
 
 ```bash
 fishgo/
