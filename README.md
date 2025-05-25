@@ -1,6 +1,8 @@
 # Fish-Go ([데모링크](http://211.217.160.129:3000 "fish-go"))
 
 ---
+![애플리케이션 이미지](/readme/fish_go_screen_shot.png)
+
 ## 🧭개요
 **FishGo**는 사용자들이 낚시 포인트를 공유하고, 조황 정보를 기록하며 소통할 수 있는 위치 기반 커뮤니티입니다.  
 이 레포지토리는 **백엔드 REST API 서버**로, 클라이언트와 분리된 구조로 동작합니다.
@@ -29,6 +31,40 @@
 | 인증 | JWT (JSON Web Token)         |
 | API 문서화 | Swagger ([링크](http://211.217.160.129:7777/swagger-ui/index.html))             |
 | 형상 관리 | Git, GitHub                  |
+
+---
+## 📁 프로젝트 구조
+
+```bash
+fishgo/
+├── src/
+│   └── main/
+│       ├── java/com/fishgo/
+│       │   ├── badge/                # 첫 게시물 생성, 7일 연속 접속 등 뱃지 시스템 패키지
+│       │   │   ├── controller/       # REST API 컨트롤러
+│       │   │   ├── domain/           # JPA 엔티티
+│       │   │   ├── dto/              # 요청/응답용 DTO 클래스
+│       │   │   │   └── mapper/       # DTO와 Entity 변환용 클래스
+│       │   │   ├── event/
+│       │   │   ├── repository/       # Spring Data JPA 레포지토리 인터페이스
+│       │   │   └── service/          # 비즈니스 로직 서비스 계층
+│       │   ├── common/
+│       │   │   ├── constants/        # ErrorCode, UploadPath 등 절대값을 가진 Enum
+│       │   │   ├── exception/        # CustomException, GlobalExceptionHandler
+│       │   │   ├── filter/           # Jwt 등 인증 관련 필터
+│       │   │   ├── response/         # 데이터 반환 획일화를 위한 ResponstDTO
+│       │   │   ├── util/             # 이미지 검증, 닉네임 랜덤생성 등 유틸리티 클래스
+│       │   │   └── ...
+│       │   ├── config/               # 보안, JWT 관련 설정 클래스
+│       │   ├── posts/                # 게시글 CRUD 관련 패키지
+│       │   │   ├── comments/         # 댓글 CRUD 관련 패키지
+│       │   │   │   └── ...
+│       │   │   └── ...
+│       │   ├── users/                # 회원가입, 로그인, 프로필 수정 등 유저 관련 패키지
+│       │   │   └── ...
+│       └── resources/
+│           └── application.properties   # 애플리케이션 설정 (DB, JWT 등)
+```
 
 ---
 
