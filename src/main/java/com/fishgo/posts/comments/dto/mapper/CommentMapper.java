@@ -45,7 +45,7 @@ public interface CommentMapper {
 
     /**
      * 댓글 Entity -> 응답용 DTO 변환
-     * 응답에 필요한 필드만 매핑합니다.
+     * 응답에 필요한 필드만 매핑
      */
     @Mapping(target = "id", source = "comment.id")
     @Mapping(target = "userId", source = "comment.user.id")
@@ -63,7 +63,9 @@ public interface CommentMapper {
     CommentWithFirstReplyResponseDto toResponse(Comment comment);
 
     @AfterMapping
-    default void afterMappingForCommentWithFirstReplyResponseDto(@MappingTarget CommentWithFirstReplyResponseDto response, Comment comment) {
+    default void afterMappingForCommentWithFirstReplyResponseDto(
+            @MappingTarget CommentWithFirstReplyResponseDto response,
+            Comment comment) {
         response.setMentionedUser(toMentionDto(comment));
         setContentsByStatus(response, comment.getStatus());
     }

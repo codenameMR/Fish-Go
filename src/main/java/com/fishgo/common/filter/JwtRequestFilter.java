@@ -28,16 +28,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-
 @Component
 @AllArgsConstructor
 @Slf4j
 public class JwtRequestFilter extends OncePerRequestFilter {
+    private static final String ACCESS_TOKEN = "accessToken";
+    private static final String REFRESH_TOKEN = "refreshToken";
+    private static final String ROLE_PREFIX = "ROLE_";
 
     private final JwtUtil jwtUtil;
     private final UsersRepository usersRepository;
     private final UserMapper userMapper;
-
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -45,77 +46,89 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain chain)
             throws ServletException, IOException {
         try {
-            // 1. Access Token 추출
-            String accessToken = jwtUtil.resolveTokenFromCookies(request, "accessToken");
-
-
-            // 2. Access Token 검증
-            if (accessToken != null && jwtUtil.isTokenValid(accessToken)) {
-
-                if (jwtUtil.isAccessBlacklisted(accessToken)) {
-                    throw new CustomException(ErrorCode.BLACKLISTED_TOKEN.getCode(), "이미 로그아웃된 토큰입니다.");
-                }
-
-                Long userId = jwtUtil.extractUserId(accessToken);
-
-                if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    Users user = usersRepository.findById(userId)
-                            .orElseThrow(() -> new IllegalArgumentException("토큰 발급 중 유저 조회 실패"));
-
-                    setAuthentication(user);
-                }
-            } else {
-                // 액세스 토큰이 유효하지 않은 경우 -> 리프레시 토큰으로 새로 발급 시도
-                String refreshToken = jwtUtil.resolveTokenFromCookies(request, "refreshToken");
-
-
-                if(refreshToken != null && jwtUtil.isTokenValid(refreshToken)) {
-
-                    if (jwtUtil.isRefreshBlacklisted(refreshToken)) {
-                        throw new CustomException(ErrorCode.BLACKLISTED_TOKEN.getCode(), "이미 로그아웃된 토큰입니다.");
-                    }
-                    Long userId = jwtUtil.extractUserId(refreshToken);
-
-                    Users user = usersRepository.findById(userId)
-                            .orElseThrow(() -> new IllegalArgumentException("토큰 발급 중 유저 조회 실패"));
-
-                    JwtRequestDto jwtRequestDto = userMapper.toJwtRequestDto(user);
-                    String newAccessToken = jwtUtil.generateAccessToken(jwtRequestDto);
-
-                    response.addCookie(jwtUtil.registerToken("accessToken", newAccessToken));
-
-                    setAuthentication(user);
-                }
+            // AccessToken 인증 실패시 false return
+            if (!processAccessToken(request)) {
+                processRefreshToken(request, response);
             }
+        } catch (Exception e) {
+            handleTokenException(e);
+        }
+        chain.doFilter(request, response);
+    }
 
-        } catch (ExpiredJwtException e) {
+    private boolean processAccessToken(HttpServletRequest request) {
+        String accessToken = jwtUtil.resolveTokenFromCookies(request, ACCESS_TOKEN);
+
+        if (accessToken != null && jwtUtil.isTokenValid(accessToken)) {
+
+            validateTokenBlacklist(accessToken, true);
+            authenticateUser(jwtUtil.extractUserId(accessToken));
+
+            return true;
+        }
+        return false;
+    }
+
+    private void processRefreshToken(HttpServletRequest request, HttpServletResponse response) {
+        String refreshToken = jwtUtil.resolveTokenFromCookies(request, REFRESH_TOKEN);
+
+        if (refreshToken != null && jwtUtil.isTokenValid(refreshToken)) {
+
+            validateTokenBlacklist(refreshToken, false);
+
+            Long userId = jwtUtil.extractUserId(refreshToken);
+            Users user = getUserById(userId);
+            String newAccessToken = generateNewAccessToken(user);
+
+            response.addCookie(jwtUtil.registerToken(ACCESS_TOKEN, newAccessToken));
+            setAuthentication(user);
+        }
+    }
+
+    private void validateTokenBlacklist(String token, boolean isAccessToken) {
+        boolean isBlacklisted = isAccessToken ?
+                jwtUtil.isAccessBlacklisted(token) :
+                jwtUtil.isRefreshBlacklisted(token);
+        if (isBlacklisted) {
+            throw new CustomException(ErrorCode.BLACKLISTED_TOKEN.getCode(), "이미 로그아웃된 토큰입니다.");
+        }
+    }
+
+    private Users getUserById(Long userId) {
+        return usersRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("토큰 발급 중 유저 조회 실패"));
+    }
+
+    private String generateNewAccessToken(Users user) {
+        JwtRequestDto jwtRequestDto = userMapper.toJwtRequestDto(user);
+        return jwtUtil.generateAccessToken(jwtRequestDto);
+    }
+
+    private void authenticateUser(Long userId) {
+        if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            setAuthentication(getUserById(userId));
+        }
+    }
+
+    private void handleTokenException(Exception e) {
+        if (e instanceof ExpiredJwtException) {
             throw new CustomException(ErrorCode.EXPIRED_TOKEN.getCode(), "만료된 토큰입니다.");
-        } catch (MalformedJwtException e) {
+        } else if (e instanceof MalformedJwtException) {
             throw new CustomException(ErrorCode.MALFORMED_TOKEN.getCode(), "손상된 토큰입니다.");
         }
-
-        chain.doFilter(request, response);
+        throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR.getCode(), "토큰 처리 중 오류가 발생했습니다.");
     }
 
     private void setAuthentication(Users user) {
         List<GrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole()));
+        authorities.add(new SimpleGrantedAuthority(ROLE_PREFIX + user.getRole()));
 
-        // 상태에 따른 추가 권한 부여
         if (UserStatus.WITHDRAW_REQUEST.equals(user.getStatus())) {
             authorities.add(new SimpleGrantedAuthority(UserStatus.WITHDRAW_REQUEST.name()));
         }
 
-        // Authentication 객체 생성
         UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(
-                        user,   // Principal (user 객체)
-                        null,   // Credentials (비밀번호, 토큰 등) - 이미 인증된 상태이므로 null
-                        authorities // 권한 목록
-                );
-
-        // SecurityContextHolder에 인증 객체 저장
+                new UsernamePasswordAuthenticationToken(user, null, authorities);
         SecurityContextHolder.getContext().setAuthentication(authToken);
     }
-
 }
